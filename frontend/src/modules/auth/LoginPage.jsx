@@ -20,6 +20,8 @@ function LoginPage({
     [onLoginFieldChange]
   );
 
+  const isRegisterMode = loginMode === "register";
+
   return (
     <main className="auth-page-wrap auth-login-wrap">
       <section className="auth-page-card auth-login-card">
@@ -30,8 +32,8 @@ function LoginPage({
             </Link>
             <h1>欢迎登录</h1>
             <p className="auth-intro">用户登录后可下单、查看订单和管理收货信息。</p>
-            <Link to={APP_ROUTES.MERCHANT_JOIN} className="ghost-link">
-              我是商户，去入驻
+            <Link to={`${APP_ROUTES.MERCHANT_JOIN}?mode=login`} className="ghost-link">
+              商户登录 / 入驻
             </Link>
           </aside>
 
@@ -45,7 +47,7 @@ function LoginPage({
                   onClick={() => onLoginModeChange("login")}
                   aria-pressed={loginMode === "login"}
                 >
-                  登录
+                  用户登录
                 </button>
                 <button
                   type="button"
@@ -53,7 +55,7 @@ function LoginPage({
                   onClick={() => onLoginModeChange("register")}
                   aria-pressed={loginMode === "register"}
                 >
-                  注册
+                  用户注册
                 </button>
               </div>
             </div>
@@ -65,7 +67,7 @@ function LoginPage({
             ) : null}
 
             <form className="auth-form" onSubmit={onSubmit} noValidate>
-              {loginMode === "register" ? (
+              {isRegisterMode ? (
                 <label htmlFor="login-fullName">
                   姓名
                   <input
@@ -101,12 +103,12 @@ function LoginPage({
                   value={loginForm.password}
                   onChange={handleFieldChange}
                   placeholder="请输入密码"
-                  autoComplete={loginMode === "login" ? "current-password" : "new-password"}
+                  autoComplete={isRegisterMode ? "new-password" : "current-password"}
                   required
                 />
               </label>
               <button type="submit" disabled={loginSubmitting}>
-                {loginSubmitting ? "提交中..." : loginMode === "login" ? "立即登录" : "立即注册"}
+                {loginSubmitting ? "提交中..." : isRegisterMode ? "立即注册" : "立即登录"}
               </button>
             </form>
           </div>

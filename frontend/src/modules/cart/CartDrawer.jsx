@@ -16,7 +16,7 @@ function CartDrawer({
   onUpdateQuantity,
   onRemoveItem
 }) {
-  if (!currentUser) {
+  if (!currentUser || currentUser.role === "MERCHANT") {
     return null;
   }
 
@@ -113,4 +113,3 @@ function CartDrawer({
 }
 
 export default CartDrawer;
-

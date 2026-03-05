@@ -22,6 +22,10 @@ function OrdersPage({
     return <Navigate to={APP_ROUTES.LOGIN} replace />;
   }
 
+  if (currentUser.role === "MERCHANT") {
+    return <Navigate to={APP_ROUTES.MERCHANT_DASHBOARD} replace />;
+  }
+
   return (
     <div className="view-shell">
       <SiteHeader
@@ -97,6 +101,3 @@ function OrdersPage({
 }
 
 export default OrdersPage;
-
-
-

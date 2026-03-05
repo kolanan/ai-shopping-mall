@@ -16,6 +16,7 @@ export function useAuthFormsModule() {
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginFeedback, setLoginFeedback] = useState(null);
 
+  const [merchantMode, setMerchantMode] = useState("register");
   const [merchantForm, setMerchantForm] = useState(createEmptyAuthForm);
   const [merchantSubmitting, setMerchantSubmitting] = useState(false);
   const [merchantFeedback, setMerchantFeedback] = useState(null);
@@ -47,6 +48,8 @@ export function useAuthFormsModule() {
     setLoginSubmitting,
     loginFeedback,
     setLoginFeedback,
+    merchantMode,
+    setMerchantMode,
     merchantForm,
     setMerchantForm,
     updateMerchantField,

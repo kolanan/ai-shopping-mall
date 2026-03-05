@@ -1,0 +1,12 @@
+﻿spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    root: WARN
+    com.aism.aishoppingmall: INFO
+
+knife4j:
+  enable: false

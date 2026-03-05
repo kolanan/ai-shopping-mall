@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useCallback, useState } from "react";
 import { fetchOrders, updateOrderStatus } from "../api/orders";
 
 export function useOrderModule() {
@@ -7,7 +7,7 @@ export function useOrderModule() {
   const [ordersError, setOrdersError] = useState("");
   const [orderActionBusyId, setOrderActionBusyId] = useState(null);
 
-  async function loadOrders(userId) {
+  const loadOrders = useCallback(async (userId) => {
     if (!userId) {
       setOrders([]);
       return;
@@ -23,22 +23,25 @@ export function useOrderModule() {
     } finally {
       setOrdersLoading(false);
     }
-  }
+  }, []);
 
-  async function payOrder(orderId, userId) {
-    setOrderActionBusyId(orderId);
-    setOrdersError("");
-    try {
-      await updateOrderStatus(orderId, { userId, status: "PAID" });
-      await loadOrders(userId);
-      return null;
-    } catch (error) {
-      setOrdersError(error.message);
-      return error;
-    } finally {
-      setOrderActionBusyId(null);
-    }
-  }
+  const payOrder = useCallback(
+    async (orderId, userId) => {
+      setOrderActionBusyId(orderId);
+      setOrdersError("");
+      try {
+        await updateOrderStatus(orderId, { userId, status: "PAID" });
+        await loadOrders(userId);
+        return null;
+      } catch (error) {
+        setOrdersError(error.message);
+        return error;
+      } finally {
+        setOrderActionBusyId(null);
+      }
+    },
+    [loadOrders]
+  );
 
   return {
     orders,

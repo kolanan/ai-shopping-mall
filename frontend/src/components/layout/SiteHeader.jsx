@@ -1,6 +1,9 @@
-﻿import "./SiteHeader.css";
+﻿import { memo } from "react";
+import "./SiteHeader.css";
 import { Link } from "react-router-dom";
 import { APP_ROUTES } from "../../router/paths";
+
+const SUBNAV_ITEMS = ["首页推荐", "热销好物", "品牌商户", "极速履约", "售后保障"];
 
 function SiteHeader({ currentUser, cartTotalItems, onToggleCart, onLogout }) {
   return (
@@ -21,12 +24,22 @@ function SiteHeader({ currentUser, cartTotalItems, onToggleCart, onLogout }) {
                 {currentUser.fullName}
                 {currentUser.role === "MERCHANT" ? " · 商户" : " · 用户"}
               </div>
-              <Link to={APP_ROUTES.ORDERS} className="nav-button">
-                我的订单
-              </Link>
-              <button type="button" className="nav-button" onClick={onToggleCart}>
-                购物车 {cartTotalItems || 0}
-              </button>
+
+              {currentUser.role === "MERCHANT" ? (
+                <Link to={APP_ROUTES.MERCHANT_DASHBOARD} className="nav-button">
+                  商户管理
+                </Link>
+              ) : (
+                <>
+                  <Link to={APP_ROUTES.ORDERS} className="nav-button">
+                    我的订单
+                  </Link>
+                  <button type="button" className="nav-button" onClick={onToggleCart}>
+                    购物车 {cartTotalItems || 0}
+                  </button>
+                </>
+              )}
+
               <button type="button" className="nav-button secondary" onClick={onLogout}>
                 退出
               </button>
@@ -48,17 +61,12 @@ function SiteHeader({ currentUser, cartTotalItems, onToggleCart, onLogout }) {
       </header>
 
       <div className="subnav">
-        <span>首页推荐</span>
-        <span>热销好物</span>
-        <span>品牌商户</span>
-        <span>极速履约</span>
-        <span>售后保障</span>
+        {SUBNAV_ITEMS.map((item) => (
+          <span key={item}>{item}</span>
+        ))}
       </div>
     </>
   );
 }
 
-export default SiteHeader;
-
-
-
+export default memo(SiteHeader);

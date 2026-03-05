@@ -34,6 +34,10 @@ export async function login(credentials) {
   return request("/api/auth/login", credentials);
 }
 
+export async function merchantLogin(credentials) {
+  return request("/api/auth/merchant/login", credentials);
+}
+
 export async function register(payload) {
   return request("/api/auth/register", payload);
 }

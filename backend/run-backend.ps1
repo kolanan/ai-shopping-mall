@@ -1,5 +1,8 @@
 ﻿$env:JAVA_HOME = "D:\Users\admin\.jdks\openjdk-21.0.1"
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
+if (-not $env:SPRING_PROFILES_ACTIVE) {
+    $env:SPRING_PROFILES_ACTIVE = "dev"
+}
 
 $workDir = (Get-Location).Path
 if ($workDir.StartsWith("\\?\")) {

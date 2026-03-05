@@ -110,6 +110,20 @@ public class AdminProductService {
         return AdminProductResponse.from(productRepository.save(product));
     }
 
+    @Transactional
+    public AdminProductResponse stockInProduct(Long productId, AdminStockInRequest request) {
+        User merchant = loadMerchant(request.getMerchantId());
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "商品不存在。"));
+
+        if (product.getMerchant() == null || !product.getMerchant().getId().equals(merchant.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权操作该商品库存。");
+        }
+
+        product.setStockQuantity(product.getStockQuantity() + request.getQuantity());
+        return AdminProductResponse.from(productRepository.save(product));
+    }
+
     public AdminUploadResponse uploadProductImage(Long merchantId, MultipartFile file) {
         loadMerchant(merchantId);
         if (file == null || file.isEmpty()) {

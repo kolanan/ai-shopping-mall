@@ -2,71 +2,54 @@ package com.aism.aishoppingmall.product;
 
 import com.aism.aishoppingmall.category.Category;
 import com.aism.aishoppingmall.user.User;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "products")
+@TableName("products")
 public class Product {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false, length = 140)
     private String name;
 
-    @Column(nullable = false, unique = true, length = 160)
     private String slug;
 
-    @Column(nullable = false, length = 1000)
     private String description;
 
-    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(nullable = false, precision = 2, scale = 1)
     private BigDecimal rating;
 
-    @Column(length = 40)
     private String badge;
 
-    @Column(name = "image_url", length = 255)
+    @TableField("image_url")
     private String imageUrl;
 
-    @Column(nullable = false)
     private Boolean active;
 
-    @Column(nullable = false)
     private Boolean featured;
 
-    @Column(name = "stock_quantity", nullable = false)
+    @TableField("stock_quantity")
     private Integer stockQuantity;
 
-    @Column(name = "display_order", nullable = false)
+    @TableField("display_order")
     private Integer displayOrder;
 
-    @Column(name = "category_id", nullable = false)
+    @TableField("category_id")
     private Long categoryId;
 
-    @Column(name = "merchant_id")
+    @TableField("merchant_id")
     private Long merchantId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", nullable = false, insertable = false, updatable = false)
+    @TableField(exist = false)
     private Category category;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "merchant_id", insertable = false, updatable = false)
+    @TableField(exist = false)
     private User merchant;
 
     protected Product() {

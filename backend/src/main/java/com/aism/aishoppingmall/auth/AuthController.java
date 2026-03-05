@@ -53,4 +53,14 @@ public class AuthController {
     ) {
         return authService.login(request);
     }
+
+    @Operation(summary = "Merchant login")
+    @PostMapping("/merchant/login")
+    public AuthResponse merchantLogin(
+            @Parameter(description = "Merchant login request", required = true)
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Merchant login request body", required = true)
+            @Valid @RequestBody LoginRequest request
+    ) {
+        return authService.merchantLogin(request);
+    }
 }

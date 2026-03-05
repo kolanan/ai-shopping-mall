@@ -71,6 +71,18 @@ public class AdminProductController {
         return adminProductService.updateProduct(productId, request);
     }
 
+    @Operation(summary = "Stock in product")
+    @PatchMapping("/products/{productId}/stock-in")
+    public AdminProductResponse stockInProduct(
+            @Parameter(description = "Product ID", required = true, example = "101")
+            @PathVariable Long productId,
+            @Parameter(description = "Stock-in request", required = true)
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Stock-in request body", required = true)
+            @Valid @RequestBody AdminStockInRequest request
+    ) {
+        return adminProductService.stockInProduct(productId, request);
+    }
+
     @Operation(summary = "Upload product image")
     @PostMapping("/uploads/product-image")
     public AdminUploadResponse uploadProductImage(

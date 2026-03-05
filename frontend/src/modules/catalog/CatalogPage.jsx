@@ -5,6 +5,25 @@ import SiteHeader from "../../components/layout/SiteHeader";
 import SiteFooter from "../../components/layout/SiteFooter";
 import { formatPrice } from "../../utils/formatters";
 
+const HERO_CARDS = [
+  {
+    title: "新人专享",
+    description: "首单限时优惠，爆款低价直降，适合快速入手常用好物。"
+  },
+  {
+    title: "品牌严选",
+    description: "优先推荐稳定口碑商户，品质和服务表现更稳定。"
+  },
+  {
+    title: "热销推荐",
+    description: "根据近期下单趋势整理高转化单品，选购效率更高。"
+  },
+  {
+    title: "次日达专区",
+    description: "优先展示库存充足商品，降低缺货和等待风险。"
+  }
+];
+
 function CatalogPage({
   currentUser,
   cartTotalItems,
@@ -22,6 +41,11 @@ function CatalogPage({
   onSearchChange,
   onAddToCart
 }) {
+  const hasProducts = filteredProducts.length > 0;
+  const showEmptyState = !productsLoading && !productsError && !hasProducts;
+  const showErrorState = !productsLoading && Boolean(productsError);
+  const showProducts = !productsLoading && !productsError && hasProducts;
+
   return (
     <div className="view-shell">
       <SiteHeader
@@ -49,22 +73,12 @@ function CatalogPage({
           </div>
 
           <div className="home-hero-stats">
-            <article className="hero-card">
-              <h2>新人专享</h2>
-              <p>首单限时优惠，爆款低价直降，适合快速入手常用好物。</p>
-            </article>
-            <article className="hero-card">
-              <h2>品牌严选</h2>
-              <p>优先推荐稳定口碑商户，品质和服务表现更稳定。</p>
-            </article>
-            <article className="hero-card">
-              <h2>热销推荐</h2>
-              <p>根据近期下单趋势整理高转化单品，选购效率更高。</p>
-            </article>
-            <article className="hero-card">
-              <h2>次日达专区</h2>
-              <p>优先展示库存充足商品，降低缺货和等待风险。</p>
-            </article>
+            {HERO_CARDS.map((card) => (
+              <article key={card.title} className="hero-card">
+                <h2>{card.title}</h2>
+                <p>{card.description}</p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -92,12 +106,10 @@ function CatalogPage({
           </div>
 
           {productsLoading ? <div className="status-panel">商品加载中...</div> : null}
-          {!productsLoading && productsError ? <div className="status-panel error">{productsError}</div> : null}
-          {!productsLoading && !productsError && filteredProducts.length === 0 ? (
-            <div className="status-panel">当前没有匹配商品</div>
-          ) : null}
+          {showErrorState ? <div className="status-panel error">{productsError}</div> : null}
+          {showEmptyState ? <div className="status-panel">当前没有匹配商品</div> : null}
 
-          {!productsLoading && !productsError && filteredProducts.length > 0 ? (
+          {showProducts ? (
             <div className="product-grid">
               {filteredProducts.map((product) => (
                 <article key={product.id} className="product-card">
@@ -137,7 +149,3 @@ function CatalogPage({
 }
 
 export default CatalogPage;
-
-
-
-

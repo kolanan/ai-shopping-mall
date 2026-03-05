@@ -3,6 +3,7 @@ import LoginPage from "../modules/auth/LoginPage";
 import MerchantJoinPage from "../modules/auth/MerchantJoinPage";
 import CatalogPage from "../modules/catalog/CatalogPage";
 import OrdersPage from "../modules/order/OrdersPage";
+import MerchantDashboardPage from "../modules/merchant/MerchantDashboardPage";
 import { APP_ROUTES } from "./paths";
 
 export function buildAppRoutes({
@@ -11,6 +12,7 @@ export function buildAppRoutes({
   catalog,
   cart,
   order,
+  merchant,
   authForms,
   handlers
 }) {
@@ -21,9 +23,9 @@ export function buildAppRoutes({
         <CatalogPage
           currentUser={currentUser}
           cartTotalItems={cart.cartData.totalItems}
-          onToggleCart={() => cart.setCartOpen((prev) => !prev)}
+          onToggleCart={handlers.toggleCart}
           onLogout={handlers.handleLogout}
-          onOpenCart={() => cart.setCartOpen(true)}
+          onOpenCart={handlers.openCart}
           feedback={feedback}
           productsLoading={catalog.productsLoading}
           productsError={catalog.productsError}
@@ -43,14 +45,27 @@ export function buildAppRoutes({
         <OrdersPage
           currentUser={currentUser}
           cartTotalItems={cart.cartData.totalItems}
-          onToggleCart={() => cart.setCartOpen((prev) => !prev)}
+          onToggleCart={handlers.toggleCart}
           onLogout={handlers.handleLogout}
           orders={order.orders}
           ordersLoading={order.ordersLoading}
           ordersError={order.ordersError}
           orderActionBusyId={order.orderActionBusyId}
-          onRefreshOrders={() => void order.loadOrders(currentUser?.id)}
-          onPayOrder={(orderId) => void handlers.handlePayOrder(orderId)}
+          onRefreshOrders={handlers.handleRefreshOrders}
+          onPayOrder={handlers.handlePayOrder}
+        />
+      )
+    },
+    {
+      path: APP_ROUTES.MERCHANT_DASHBOARD,
+      element: (
+        <MerchantDashboardPage
+          currentUser={currentUser}
+          onLogout={handlers.handleLogout}
+          merchant={merchant}
+          onRefresh={handlers.handleRefreshMerchantProducts}
+          onCreateProduct={handlers.handleCreateMerchantProduct}
+          onStockInProduct={handlers.handleStockInMerchantProduct}
         />
       )
     },
@@ -72,11 +87,13 @@ export function buildAppRoutes({
       path: APP_ROUTES.MERCHANT_JOIN,
       element: (
         <MerchantJoinPage
+          merchantMode={authForms.merchantMode}
+          onMerchantModeChange={handlers.handleMerchantModeChange}
           merchantForm={authForms.merchantForm}
           onMerchantFieldChange={authForms.updateMerchantField}
           merchantSubmitting={authForms.merchantSubmitting}
           merchantFeedback={authForms.merchantFeedback}
-          onSubmit={handlers.handleMerchantJoinSubmit}
+          onSubmit={handlers.handleMerchantSubmit}
         />
       )
     },

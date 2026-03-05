@@ -2,5 +2,6 @@
   CATALOG: "/",
   ORDERS: "/orders",
   LOGIN: "/login",
-  MERCHANT_JOIN: "/merchant/join"
+  MERCHANT_JOIN: "/merchant/join",
+  MERCHANT_DASHBOARD: "/merchant/dashboard"
 };

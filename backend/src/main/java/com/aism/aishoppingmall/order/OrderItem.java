@@ -1,48 +1,38 @@
 package com.aism.aishoppingmall.order;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "order_items")
+@TableName("order_items")
 public class OrderItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "order_id", nullable = false)
+    @TableField("order_id")
     private Long orderId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_id", nullable = false, insertable = false, updatable = false)
+    @TableField(exist = false)
     private Order order;
 
-    @Column(name = "product_id", nullable = false)
+    @TableField("product_id")
     private Long productId;
 
-    @Column(name = "product_name", nullable = false, length = 140)
+    @TableField("product_name")
     private String productName;
 
-    @Column(nullable = false, length = 120)
     private String category;
 
-    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
+    @TableField("unit_price")
     private BigDecimal unitPrice;
 
-    @Column(nullable = false)
     private Integer quantity;
 
-    @Column(name = "line_total", nullable = false, precision = 10, scale = 2)
+    @TableField("line_total")
     private BigDecimal lineTotal;
 
     protected OrderItem() {

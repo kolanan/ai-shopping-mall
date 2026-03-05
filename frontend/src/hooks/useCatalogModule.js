@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchFeaturedProducts } from "../api/products";
 
 export function useCatalogModule() {
@@ -31,7 +31,7 @@ export function useCatalogModule() {
     });
   }, [products, categoryFilter, searchKeyword]);
 
-  async function loadProducts() {
+  const loadProducts = useCallback(async () => {
     setProductsLoading(true);
     setProductsError("");
     try {
@@ -42,11 +42,11 @@ export function useCatalogModule() {
     } finally {
       setProductsLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadProducts();
-  }, []);
+  }, [loadProducts]);
 
   return {
     products,
@@ -61,4 +61,3 @@ export function useCatalogModule() {
     loadProducts
   };
 }
-

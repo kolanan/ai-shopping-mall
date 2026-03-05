@@ -47,6 +47,19 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        User user = authenticateUser(request);
+        return new AuthResponse("登录成功。", AuthUserResponse.from(user));
+    }
+
+    public AuthResponse merchantLogin(LoginRequest request) {
+        User user = authenticateUser(request);
+        if (user.getRole() != UserRole.MERCHANT) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "当前账号不是商户账号。");
+        }
+        return new AuthResponse("商户登录成功。", AuthUserResponse.from(user));
+    }
+
+    private User authenticateUser(LoginRequest request) {
         String normalizedEmail = normalizeEmail(request.getEmail());
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "邮箱或密码错误。"));
@@ -55,7 +68,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "邮箱或密码错误。");
         }
 
-        return new AuthResponse("登录成功。", AuthUserResponse.from(user));
+        return user;
     }
 
     private String normalizeEmail(String email) {

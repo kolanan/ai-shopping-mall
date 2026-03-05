@@ -1,19 +1,23 @@
-﻿import { useState } from "react";
+import { useCallback, useState } from "react";
 import { addCartItem, fetchCart, removeCartItem, updateCartItem } from "../api/cart";
 
 const EMPTY_CART = { totalItems: 0, totalAmount: 0, items: [] };
 
+function createEmptyCart() {
+  return { ...EMPTY_CART, items: [] };
+}
+
 export function useCartModule() {
-  const [cartData, setCartData] = useState(EMPTY_CART);
+  const [cartData, setCartData] = useState(createEmptyCart);
   const [cartLoading, setCartLoading] = useState(false);
   const [cartBusyItemId, setCartBusyItemId] = useState(null);
   const [cartSubmittingOrder, setCartSubmittingOrder] = useState(false);
   const [cartError, setCartError] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
 
-  async function loadCart(userId) {
+  const loadCart = useCallback(async (userId) => {
     if (!userId) {
-      setCartData(EMPTY_CART);
+      setCartData(createEmptyCart());
       return;
     }
 
@@ -27,15 +31,15 @@ export function useCartModule() {
     } finally {
       setCartLoading(false);
     }
-  }
+  }, []);
 
-  async function addToCart(userId, productId) {
+  const addToCart = useCallback(async (userId, productId) => {
     const data = await addCartItem({ userId, productId, quantity: 1 });
     setCartData(data);
     setCartOpen(true);
-  }
+  }, []);
 
-  async function updateQuantity(userId, itemId, nextQuantity) {
+  const updateQuantity = useCallback(async (userId, itemId, nextQuantity) => {
     setCartBusyItemId(itemId);
     setCartError("");
     try {
@@ -47,9 +51,9 @@ export function useCartModule() {
     } finally {
       setCartBusyItemId(null);
     }
-  }
+  }, []);
 
-  async function removeItem(userId, itemId) {
+  const removeItem = useCallback(async (userId, itemId) => {
     setCartBusyItemId(itemId);
     setCartError("");
     try {
@@ -61,13 +65,13 @@ export function useCartModule() {
     } finally {
       setCartBusyItemId(null);
     }
-  }
+  }, []);
 
-  function resetCartState() {
-    setCartData(EMPTY_CART);
+  const resetCartState = useCallback(() => {
+    setCartData(createEmptyCart());
     setCartError("");
     setCartOpen(false);
-  }
+  }, []);
 
   return {
     cartData,

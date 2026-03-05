@@ -1,4 +1,4 @@
-async function parseResponse(response, fallbackMessage) {
+﻿async function parseResponse(response, fallbackMessage) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(data.message || fallbackMessage);
@@ -36,6 +36,17 @@ export async function updateMerchantProduct(productId, payload) {
     body: JSON.stringify(payload)
   });
   return parseResponse(response, "商品更新失败。");
+}
+
+export async function stockInMerchantProduct(productId, payload) {
+  const response = await fetch(`/api/admin/products/${encodeURIComponent(productId)}/stock-in`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  return parseResponse(response, "商品入库失败。");
 }
 
 export async function uploadMerchantProductImage(merchantId, file) {
