@@ -59,12 +59,9 @@ export function buildAppRoutes({
       element: (
         <LoginPage
           loginMode={authForms.loginMode}
-          setLoginMode={(mode) => {
-            authForms.setLoginMode(mode);
-            authForms.setLoginFeedback(null);
-          }}
+          onLoginModeChange={handlers.handleLoginModeChange}
           loginForm={authForms.loginForm}
-          setLoginForm={authForms.setLoginForm}
+          onLoginFieldChange={authForms.updateLoginField}
           loginSubmitting={authForms.loginSubmitting}
           loginFeedback={authForms.loginFeedback}
           onSubmit={handlers.handleLoginSubmit}
@@ -76,7 +73,7 @@ export function buildAppRoutes({
       element: (
         <MerchantJoinPage
           merchantForm={authForms.merchantForm}
-          setMerchantForm={authForms.setMerchantForm}
+          onMerchantFieldChange={authForms.updateMerchantField}
           merchantSubmitting={authForms.merchantSubmitting}
           merchantFeedback={authForms.merchantFeedback}
           onSubmit={handlers.handleMerchantJoinSubmit}

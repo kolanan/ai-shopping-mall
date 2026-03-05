@@ -1,16 +1,25 @@
-﻿import "./AuthPages.css";
+﻿import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { APP_ROUTES } from "../../router/paths";
+import "./AuthPages.css";
 
 function LoginPage({
   loginMode,
-  setLoginMode,
+  onLoginModeChange,
   loginForm,
-  setLoginForm,
+  onLoginFieldChange,
   loginSubmitting,
   loginFeedback,
   onSubmit
 }) {
+  const handleFieldChange = useCallback(
+    (event) => {
+      const { name, value } = event.target;
+      onLoginFieldChange(name, value);
+    },
+    [onLoginFieldChange]
+  );
+
   return (
     <main className="auth-page-wrap auth-login-wrap">
       <section className="auth-page-card auth-login-card">
@@ -29,52 +38,71 @@ function LoginPage({
           <div className="auth-login-main">
             <div className="auth-group">
               <div className="auth-group-label">用户账号</div>
-              <div className="auth-tabs">
-                <button type="button" className={loginMode === "login" ? "active" : ""} onClick={() => setLoginMode("login")}>
+              <div className="auth-tabs" role="tablist" aria-label="登录模式">
+                <button
+                  type="button"
+                  className={loginMode === "login" ? "active" : ""}
+                  onClick={() => onLoginModeChange("login")}
+                  aria-pressed={loginMode === "login"}
+                >
                   登录
                 </button>
                 <button
                   type="button"
                   className={loginMode === "register" ? "active" : ""}
-                  onClick={() => setLoginMode("register")}
+                  onClick={() => onLoginModeChange("register")}
+                  aria-pressed={loginMode === "register"}
                 >
                   注册
                 </button>
               </div>
             </div>
 
-            {loginFeedback ? <div className={`auth-feedback ${loginFeedback.type}`}>{loginFeedback.message}</div> : null}
+            {loginFeedback ? (
+              <div className={`auth-feedback ${loginFeedback.type}`} role="status" aria-live="polite">
+                {loginFeedback.message}
+              </div>
+            ) : null}
 
-            <form className="auth-form" onSubmit={onSubmit}>
+            <form className="auth-form" onSubmit={onSubmit} noValidate>
               {loginMode === "register" ? (
-                <label>
+                <label htmlFor="login-fullName">
                   姓名
                   <input
+                    id="login-fullName"
                     name="fullName"
                     value={loginForm.fullName}
-                    onChange={(event) => setLoginForm((current) => ({ ...current, fullName: event.target.value }))}
+                    onChange={handleFieldChange}
                     placeholder="请输入姓名"
+                    autoComplete="name"
+                    required
                   />
                 </label>
               ) : null}
-              <label>
+              <label htmlFor="login-email">
                 邮箱
                 <input
+                  id="login-email"
                   name="email"
                   type="email"
                   value={loginForm.email}
-                  onChange={(event) => setLoginForm((current) => ({ ...current, email: event.target.value }))}
+                  onChange={handleFieldChange}
                   placeholder="请输入邮箱"
+                  autoComplete="email"
+                  required
                 />
               </label>
-              <label>
+              <label htmlFor="login-password">
                 密码
                 <input
+                  id="login-password"
                   name="password"
                   type="password"
                   value={loginForm.password}
-                  onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
+                  onChange={handleFieldChange}
                   placeholder="请输入密码"
+                  autoComplete={loginMode === "login" ? "current-password" : "new-password"}
+                  required
                 />
               </label>
               <button type="submit" disabled={loginSubmitting}>
@@ -89,6 +117,3 @@ function LoginPage({
 }
 
 export default LoginPage;
-
-
-

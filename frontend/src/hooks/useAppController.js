@@ -2,7 +2,7 @@
 import { useLocation, useNavigate, useRoutes } from "react-router-dom";
 import { clearStoredUser, loadStoredUser, login, register, registerMerchant, storeUser } from "../api/auth";
 import { createOrder } from "../api/orders";
-import { useAuthFormsModule, DEFAULT_AUTH_FORM } from "./useAuthFormsModule";
+import { useAuthFormsModule } from "./useAuthFormsModule";
 import { useCartModule } from "./useCartModule";
 import { useCatalogModule } from "./useCatalogModule";
 import { useOrderModule } from "./useOrderModule";
@@ -27,15 +27,23 @@ export function useAppController() {
 
     if (location.pathname === APP_ROUTES.LOGIN) {
       authForms.setLoginMode(mode === "register" ? "register" : "login");
-      authForms.setLoginForm(DEFAULT_AUTH_FORM);
+      authForms.resetLoginForm();
       authForms.setLoginFeedback(null);
     }
 
     if (location.pathname === APP_ROUTES.MERCHANT_JOIN) {
-      authForms.setMerchantForm(DEFAULT_AUTH_FORM);
+      authForms.resetMerchantForm();
       authForms.setMerchantFeedback(null);
     }
-  }, [location.pathname, location.search]);
+  }, [
+    location.pathname,
+    location.search,
+    authForms.resetLoginForm,
+    authForms.resetMerchantForm,
+    authForms.setLoginFeedback,
+    authForms.setLoginMode,
+    authForms.setMerchantFeedback
+  ]);
 
   useEffect(() => {
     if (!currentUser?.id) {
@@ -125,28 +133,41 @@ export function useAppController() {
     }
   }
 
+  function handleLoginModeChange(mode) {
+    authForms.setLoginMode(mode);
+    authForms.setLoginFeedback(null);
+  }
+
   async function handleLoginSubmit(event) {
     event.preventDefault();
+    if (authForms.loginSubmitting) {
+      return;
+    }
+
     authForms.setLoginSubmitting(true);
     authForms.setLoginFeedback(null);
 
     try {
-      const payload = {
-        email: authForms.loginForm.email.trim(),
-        password: authForms.loginForm.password
-      };
+      const email = authForms.loginForm.email.trim();
+      const password = authForms.loginForm.password;
+      const fullName = authForms.loginForm.fullName.trim();
+
+      if (!email || !password || (authForms.loginMode === "register" && !fullName)) {
+        throw new Error("请完整填写表单信息。");
+      }
 
       const user =
         authForms.loginMode === "login"
-          ? await login(payload)
+          ? await login({ email, password })
           : await register({
-              fullName: authForms.loginForm.fullName.trim(),
-              email: payload.email,
-              password: payload.password
+              fullName,
+              email,
+              password
             });
 
       storeUser(user);
       setCurrentUser(user);
+      authForms.resetLoginForm();
       setFeedback({
         type: "success",
         message: authForms.loginMode === "login" ? "登录成功。" : "注册成功，已自动登录。"
@@ -161,17 +182,30 @@ export function useAppController() {
 
   async function handleMerchantJoinSubmit(event) {
     event.preventDefault();
+    if (authForms.merchantSubmitting) {
+      return;
+    }
+
     authForms.setMerchantSubmitting(true);
     authForms.setMerchantFeedback(null);
 
     try {
+      const fullName = authForms.merchantForm.fullName.trim();
+      const email = authForms.merchantForm.email.trim();
+      const password = authForms.merchantForm.password;
+
+      if (!fullName || !email || !password) {
+        throw new Error("请完整填写表单信息。");
+      }
+
       const user = await registerMerchant({
-        fullName: authForms.merchantForm.fullName.trim(),
-        email: authForms.merchantForm.email.trim(),
-        password: authForms.merchantForm.password
+        fullName,
+        email,
+        password
       });
       storeUser(user);
       setCurrentUser(user);
+      authForms.resetMerchantForm();
       setFeedback({ type: "success", message: "入驻成功，已自动登录商户账号。" });
       navigate(APP_ROUTES.CATALOG);
     } catch (error) {
@@ -193,6 +227,7 @@ export function useAppController() {
         handleLogout,
         handleAddToCart,
         handlePayOrder,
+        handleLoginModeChange,
         handleLoginSubmit,
         handleMerchantJoinSubmit
       }
