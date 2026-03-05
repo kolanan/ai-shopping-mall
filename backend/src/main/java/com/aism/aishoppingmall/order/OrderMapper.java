@@ -11,4 +11,7 @@ public interface OrderMapper extends BaseMapper<Order> {
 
     @Select("SELECT * FROM app_orders WHERE user_id = #{userId} ORDER BY created_at DESC, id DESC")
     List<Order> findAllByUserIdOrderByCreatedAtDescIdDesc(Long userId);
+
+    @Select("SELECT * FROM app_orders ORDER BY created_at DESC, id DESC")
+    List<Order> findAllOrderByCreatedAtDescIdDesc();
 }

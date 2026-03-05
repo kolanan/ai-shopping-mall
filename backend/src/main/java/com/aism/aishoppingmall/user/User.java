@@ -4,10 +4,17 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @TableName("app_users")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
     @TableId(type = IdType.AUTO)
@@ -26,9 +33,6 @@ public class User {
     @TableField("created_at")
     private LocalDateTime createdAt;
 
-    protected User() {
-    }
-
     public User(String fullName, String email, String passwordHash, UserRole role) {
         this.fullName = fullName;
         this.email = email;
@@ -37,27 +41,7 @@ public class User {
         this.createdAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
     public UserRole getRole() {
         return role == null ? UserRole.USER : role;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
     }
 }

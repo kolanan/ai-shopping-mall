@@ -11,17 +11,38 @@
   gap: 1.5rem;
 }
 
+.merchant-hero-surface {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background:
+    radial-gradient(900px 220px at 85% -10%, rgba(245, 158, 11, 0.2), transparent 55%),
+    radial-gradient(700px 220px at 10% -20%, rgba(20, 184, 166, 0.14), transparent 55%),
+    #ffffff;
+}
+
+.merchant-hero-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), transparent 48%);
+}
+
 .merchant-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  grid-template-columns: repeat(3, minmax(130px, 1fr));
   gap: 0.8rem;
 }
 
 .merchant-stat-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border: 1px solid #dbe2ea;
   border-radius: 0.9rem;
-  padding: 0.8rem 1rem;
+  padding: 0.82rem 1rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 .merchant-stat-card span {
@@ -33,7 +54,24 @@
 .merchant-stat-card strong {
   display: block;
   margin-top: 0.35rem;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+
+.merchant-stat-card-warn {
+  border-color: #fdba74;
+  background: linear-gradient(180deg, #fff7ed, #ffedd5);
+}
+
+.merchant-stat-card-warn strong {
+  color: #c2410c;
+}
+
+.merchant-stat-card-warn small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #9a3412;
+  font-size: 0.78rem;
 }
 
 .merchant-form-grid {
@@ -77,6 +115,10 @@
   align-items: center;
 }
 
+.merchant-action-link {
+  text-decoration: none;
+}
+
 .merchant-actions button[type="submit"] {
   border: 0;
   border-radius: 999px;
@@ -85,6 +127,102 @@
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+}
+
+.merchant-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.merchant-upload-panel {
+  margin-top: 0.1rem;
+  border: 1px dashed #94a3b8;
+  border-radius: 0.95rem;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  padding: 0.75rem;
+}
+
+.merchant-upload-native {
+  display: none;
+}
+
+.merchant-upload-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  border: 1px solid #0f766e;
+  background: #ffffff;
+  color: #0f766e;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.merchant-upload-picker:hover {
+  background: #ecfeff;
+  transform: translateY(-1px);
+}
+
+.merchant-upload-file {
+  max-width: 360px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.7rem;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.merchant-upload-submit {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  background: #0ea5a2;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.merchant-upload-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.merchant-upload-preview {
+  margin-top: 0.65rem;
+  color: #475569;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.merchant-upload-preview-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.8rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+}
+
+.merchant-upload-preview-card img {
+  width: 52px;
+  height: 52px;
+  border-radius: 0.6rem;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+}
+
+.merchant-upload-preview-card a {
+  color: #0f766e;
+  font-weight: 700;
 }
 
 .merchant-table-wrap {
@@ -110,6 +248,14 @@
   color: #64748b;
 }
 
+.merchant-thumb {
+  width: 58px;
+  height: 58px;
+  object-fit: cover;
+  border-radius: 0.6rem;
+  border: 1px solid #e2e8f0;
+}
+
 .stock-in-row {
   display: flex;
   gap: 0.5rem;
@@ -133,6 +279,19 @@
   cursor: pointer;
 }
 
+.merchant-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.merchant-pagination .section-link-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 @media (max-width: 900px) {
   .merchant-hero {
     flex-direction: column;
@@ -140,6 +299,7 @@
 
   .merchant-stats {
     width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .merchant-form-grid {
@@ -148,5 +308,17 @@
 
   .merchant-actions {
     flex-wrap: wrap;
+  }
+
+  .merchant-upload-row {
+    flex-wrap: wrap;
+  }
+
+  .merchant-upload-file {
+    max-width: 100%;
+  }
+
+  .merchant-stat-card-warn {
+    grid-column: 1 / -1;
   }
 }

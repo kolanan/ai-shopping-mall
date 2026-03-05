@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+﻿import { useMemo, useState } from "react";
+import { Link, Navigate } from "react-router-dom";
 import SiteHeader from "../../components/layout/SiteHeader";
 import SiteFooter from "../../components/layout/SiteFooter";
 import { APP_ROUTES } from "../../router/paths";
@@ -11,12 +11,20 @@ function MerchantDashboardPage({
   onLogout,
   merchant,
   onRefresh,
-  onCreateProduct,
-  onStockInProduct
+  onStockInProduct,
+  onChangePage
 }) {
   const [stockInQuantityMap, setStockInQuantityMap] = useState({});
   const totalStock = useMemo(
     () => merchant.products.reduce((sum, product) => sum + (product.stockQuantity || 0), 0),
+    [merchant.products]
+  );
+  const activeCount = useMemo(
+    () => merchant.products.filter((product) => product.active).length,
+    [merchant.products]
+  );
+  const lowStockCount = useMemo(
+    () => merchant.products.filter((product) => (product.stockQuantity || 0) <= 5).length,
     [merchant.products]
   );
 
@@ -45,239 +53,154 @@ function MerchantDashboardPage({
     }));
   }
 
+  const currentPage = merchant.productPage?.page || 1;
+  const totalPages = merchant.productPage?.totalPages || 1;
+  const total = merchant.productPage?.total || 0;
+
   return (
     <div className="view-shell">
       <SiteHeader currentUser={currentUser} cartTotalItems={0} onToggleCart={() => {}} onLogout={onLogout} />
 
       <main className="merchant-dashboard">
-        <section className="merchant-hero product-section">
+        <section className="merchant-hero product-section merchant-hero-surface">
           <div>
             <p className="eyebrow">Merchant Console</p>
             <h1>商户商品管理</h1>
-            <p>查看已录入商品、创建新商品并执行库存入库。</p>
+            <p>我的商品在上方展示，支持分页浏览、库存管理和快速编辑。</p>
           </div>
           <div className="merchant-stats">
             <div className="merchant-stat-card">
-              <span>商品总数</span>
+              <span>当前页商品数</span>
               <strong>{merchant.products.length}</strong>
             </div>
             <div className="merchant-stat-card">
-              <span>库存总量</span>
+              <span>当前页库存总量</span>
               <strong>{totalStock}</strong>
             </div>
-          </div>
-        </section>
-
-        <section className="product-section merchant-create">
-          <div className="section-head">
-            <div>
-              <h2>新增商品</h2>
-              <p>商品创建后会直接进入你的商品列表。</p>
+            <div className="merchant-stat-card merchant-stat-card-warn">
+              <span>低库存预警(≤5)</span>
+              <strong>{lowStockCount}</strong>
+              <small>上架商品 {activeCount} 件</small>
             </div>
           </div>
-
-          {merchant.error ? <div className="status-panel error">{merchant.error}</div> : null}
-
-          <form
-            className="merchant-form-grid"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void onCreateProduct();
-            }}
-          >
-            <label>
-              商品名称
-              <input
-                value={merchant.productForm.name}
-                onChange={(event) => merchant.updateProductFormField("name", event.target.value)}
-                placeholder="例如：无线耳机"
-              />
-            </label>
-            <label>
-              商品标识(slug)
-              <input
-                value={merchant.productForm.slug}
-                onChange={(event) => merchant.updateProductFormField("slug", event.target.value)}
-                placeholder="例如：wireless-earbuds"
-              />
-            </label>
-            <label>
-              价格
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={merchant.productForm.price}
-                onChange={(event) => merchant.updateProductFormField("price", event.target.value)}
-              />
-            </label>
-            <label>
-              评分
-              <input
-                type="number"
-                min="0"
-                max="5"
-                step="0.1"
-                value={merchant.productForm.rating}
-                onChange={(event) => merchant.updateProductFormField("rating", event.target.value)}
-              />
-            </label>
-            <label>
-              分类
-              <select
-                value={merchant.productForm.categorySlug}
-                onChange={(event) => merchant.updateProductFormField("categorySlug", event.target.value)}
-              >
-                <option value="">请选择分类</option>
-                {merchant.categories.map((category) => (
-                  <option key={category.slug} value={category.slug}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              初始库存
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={merchant.productForm.stockQuantity}
-                onChange={(event) => merchant.updateProductFormField("stockQuantity", event.target.value)}
-              />
-            </label>
-            <label>
-              展示顺序
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={merchant.productForm.displayOrder}
-                onChange={(event) => merchant.updateProductFormField("displayOrder", event.target.value)}
-              />
-            </label>
-            <label>
-              标签
-              <input
-                value={merchant.productForm.badge}
-                onChange={(event) => merchant.updateProductFormField("badge", event.target.value)}
-                placeholder="例如：新品"
-              />
-            </label>
-            <label className="merchant-full-width">
-              图片地址
-              <input
-                value={merchant.productForm.imageUrl}
-                onChange={(event) => merchant.updateProductFormField("imageUrl", event.target.value)}
-                placeholder="https://..."
-              />
-            </label>
-            <label className="merchant-full-width">
-              商品描述
-              <textarea
-                rows={3}
-                value={merchant.productForm.description}
-                onChange={(event) => merchant.updateProductFormField("description", event.target.value)}
-                placeholder="请填写商品卖点和规格说明"
-              />
-            </label>
-            <label className="merchant-checkbox">
-              <input
-                type="checkbox"
-                checked={merchant.productForm.active}
-                onChange={(event) => merchant.updateProductFormField("active", event.target.checked)}
-              />
-              上架可售
-            </label>
-            <label className="merchant-checkbox">
-              <input
-                type="checkbox"
-                checked={merchant.productForm.featured}
-                onChange={(event) => merchant.updateProductFormField("featured", event.target.checked)}
-              />
-              首页精选
-            </label>
-
-            <div className="merchant-actions merchant-full-width">
-              <button type="submit" disabled={merchant.createSubmitting}>
-                {merchant.createSubmitting ? "创建中..." : "创建商品"}
-              </button>
-              <button
-                type="button"
-                className="section-link-button"
-                onClick={merchant.resetProductForm}
-                disabled={merchant.createSubmitting}
-              >
-                重置表单
-              </button>
-              <button type="button" className="section-link-button" onClick={onRefresh}>
-                刷新列表
-              </button>
-            </div>
-          </form>
         </section>
 
         <section className="product-section">
           <div className="section-head">
             <div>
               <h2>我的商品</h2>
-              <p>可执行库存入库，库存会立即同步。</p>
+              <p>第 {currentPage} / {totalPages} 页，共 {total} 条。</p>
+            </div>
+            <div className="merchant-actions">
+              <Link to={APP_ROUTES.MERCHANT_PRODUCT_CREATE} className="button-like merchant-action-link">
+                新增商品
+              </Link>
+              <button type="button" className="section-link-button" onClick={onRefresh}>
+                刷新列表
+              </button>
             </div>
           </div>
 
+          {merchant.error ? <div className="status-panel error">{merchant.error}</div> : null}
           {merchant.loading ? <div className="status-panel">商品加载中...</div> : null}
           {!merchant.loading && !merchant.products.length ? (
             <div className="status-panel">你还没有录入商品。</div>
           ) : null}
 
           {!merchant.loading && merchant.products.length ? (
-            <div className="merchant-table-wrap">
-              <table className="merchant-table">
-                <thead>
-                  <tr>
-                    <th>商品</th>
-                    <th>分类</th>
-                    <th>售价</th>
-                    <th>库存</th>
-                    <th>状态</th>
-                    <th>入库</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {merchant.products.map((product) => (
-                    <tr key={product.id}>
-                      <td>
-                        <strong>{product.name}</strong>
-                        <div className="merchant-sub">{product.slug}</div>
-                      </td>
-                      <td>{product.categoryName}</td>
-                      <td>{formatPrice(product.price)}</td>
-                      <td>{product.stockQuantity}</td>
-                      <td>{product.active ? "上架" : "下架"}</td>
-                      <td>
-                        <div className="stock-in-row">
-                          <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            value={stockInQuantityMap[product.id] ?? ""}
-                            onChange={(event) => updateStockInput(product.id, event.target.value)}
-                            placeholder="数量"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => void handleStockIn(product.id)}
-                            disabled={merchant.stockingProductId === product.id}
-                          >
-                            {merchant.stockingProductId === product.id ? "入库中..." : "入库"}
-                          </button>
-                        </div>
-                      </td>
+            <>
+              <div className="merchant-table-wrap">
+                <table className="merchant-table">
+                  <thead>
+                    <tr>
+                      <th>商品</th>
+                      <th>图片</th>
+                      <th>分类</th>
+                      <th>售价</th>
+                      <th>评分</th>
+                      <th>标签</th>
+                      <th>库存</th>
+                      <th>排序</th>
+                      <th>状态</th>
+                      <th>入库</th>
+                      <th>操作</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {merchant.products.map((product) => (
+                      <tr key={product.id}>
+                        <td>
+                          <strong>{product.name}</strong>
+                          <div className="merchant-sub">{product.slug}</div>
+                        </td>
+                        <td>
+                          {product.imageUrl ? (
+                            <img className="merchant-thumb" src={product.imageUrl} alt={product.name} />
+                          ) : (
+                            <span className="merchant-sub">无图</span>
+                          )}
+                        </td>
+                        <td>{product.categoryName}</td>
+                        <td>{formatPrice(product.price)}</td>
+                        <td>{product.rating}</td>
+                        <td>{product.badge || "-"}</td>
+                        <td>{product.stockQuantity}</td>
+                        <td>{product.displayOrder}</td>
+                        <td>{product.active ? "上架" : "下架"}{product.featured ? " / 精选" : ""}</td>
+                        <td>
+                          <div className="stock-in-row">
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={stockInQuantityMap[product.id] ?? ""}
+                              onChange={(event) => updateStockInput(product.id, event.target.value)}
+                              placeholder="数量"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void handleStockIn(product.id)}
+                              disabled={merchant.stockingProductId === product.id}
+                            >
+                              {merchant.stockingProductId === product.id ? "入库中..." : "入库"}
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <Link
+                            to={APP_ROUTES.MERCHANT_PRODUCT_EDIT.replace(":productId", String(product.id))}
+                            state={{ product }}
+                            className="section-link-button"
+                          >
+                            编辑
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="merchant-pagination">
+                <button
+                  type="button"
+                  className="section-link-button"
+                  onClick={() => onChangePage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                >
+                  上一页
+                </button>
+                <span>第 {currentPage} 页</span>
+                <button
+                  type="button"
+                  className="section-link-button"
+                  onClick={() => onChangePage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                >
+                  下一页
+                </button>
+              </div>
+            </>
           ) : null}
         </section>
       </main>

@@ -2,12 +2,14 @@ package com.aism.aishoppingmall.order;
 
 import com.aism.aishoppingmall.cart.CartCheckoutValidationResponse;
 import com.aism.aishoppingmall.cart.CartItem;
-import com.aism.aishoppingmall.cart.CartItemRepository;
+import com.aism.aishoppingmall.cart.CartItemMapper;
 import com.aism.aishoppingmall.cart.CartService;
+import com.aism.aishoppingmall.category.Category;
+import com.aism.aishoppingmall.category.CategoryMapper;
 import com.aism.aishoppingmall.product.Product;
-import com.aism.aishoppingmall.product.ProductRepository;
+import com.aism.aishoppingmall.product.ProductMapper;
 import com.aism.aishoppingmall.user.User;
-import com.aism.aishoppingmall.user.UserRepository;
+import com.aism.aishoppingmall.user.UserMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,34 +26,36 @@ public class OrderService {
 
     private static final DateTimeFormatter ORDER_NO_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
-    private final UserRepository userRepository;
-    private final CartItemRepository cartItemRepository;
+    private final UserMapper userMapper;
+    private final CartItemMapper cartItemMapper;
     private final CartService cartService;
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final ProductRepository productRepository;
+    private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
+    private final ProductMapper productMapper;
+    private final CategoryMapper categoryMapper;
 
     public OrderService(
-            UserRepository userRepository,
-            CartItemRepository cartItemRepository,
+            UserMapper userMapper,
+            CartItemMapper cartItemMapper,
             CartService cartService,
-            OrderRepository orderRepository,
-            OrderItemRepository orderItemRepository,
-            ProductRepository productRepository
+            OrderMapper orderMapper,
+            OrderItemMapper orderItemMapper,
+            ProductMapper productMapper,
+            CategoryMapper categoryMapper
     ) {
-        this.userRepository = userRepository;
-        this.cartItemRepository = cartItemRepository;
+        this.userMapper = userMapper;
+        this.cartItemMapper = cartItemMapper;
         this.cartService = cartService;
-        this.orderRepository = orderRepository;
-        this.orderItemRepository = orderItemRepository;
-        this.productRepository = productRepository;
+        this.orderMapper = orderMapper;
+        this.orderItemMapper = orderItemMapper;
+        this.productMapper = productMapper;
+        this.categoryMapper = categoryMapper;
     }
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        List<CartItem> cartItems = cartItemRepository.findAllByUserIdOrderByUpdatedAtDescIdDesc(user.getId());
+        User user = loadUser(request.getUserId());
+        List<CartItem> cartItems = findCartItemsByUserId(user.getId());
 
         if (cartItems.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty");
@@ -62,25 +66,24 @@ public class OrderService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart validation failed");
         }
 
-        int totalItems = cartItems.stream()
-                .mapToInt(CartItem::getQuantity)
-                .sum();
+        int totalItems = cartItems.stream().mapToInt(CartItem::getQuantity).sum();
         BigDecimal totalAmount = cartItems.stream()
                 .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Order order = orderRepository.save(new Order(
+        Order order = new Order(
                 buildOrderNo(user.getId()),
                 user,
                 totalItems,
                 totalAmount,
                 OrderStatus.CREATED
-        ));
+        );
+        saveOrder(order);
 
         List<OrderItem> orderItems = cartItems.stream()
                 .map(item -> {
                     item.getProduct().setStockQuantity(item.getProduct().getStockQuantity() - item.getQuantity());
-                    productRepository.save(item.getProduct());
+                    saveProduct(item.getProduct());
                     return new OrderItem(
                             order,
                             item.getProduct().getId(),
@@ -93,8 +96,8 @@ public class OrderService {
                 })
                 .toList();
 
-        orderItemRepository.saveAll(orderItems);
-        cartItemRepository.deleteAll(cartItems);
+        saveOrderItems(orderItems);
+        deleteCartItems(cartItems);
 
         return new OrderResponse(
                 order.getId(),
@@ -110,10 +113,9 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getOrders(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        User user = loadUser(userId);
 
-        return orderRepository.findAllByUserIdOrderByCreatedAtDescIdDesc(user.getId()).stream()
+        return orderMapper.findAllByUserIdOrderByCreatedAtDescIdDesc(user.getId()).stream()
                 .map(order -> new OrderResponse(
                         order.getId(),
                         order.getOrderNo(),
@@ -122,7 +124,7 @@ public class OrderService {
                         order.getTotalAmount(),
                         order.getStatus().name(),
                         order.getCreatedAt(),
-                        orderItemRepository.findAllByOrderIdOrderByIdAsc(order.getId()).stream()
+                        orderItemMapper.findAllByOrderIdOrderByIdAsc(order.getId()).stream()
                                 .map(OrderItemResponse::from)
                                 .toList()
                 ))
@@ -131,12 +133,13 @@ public class OrderService {
 
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        User user = loadUser(request.getUserId());
+        Order order = orderMapper.selectById(orderId);
+        if (order == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
+        }
 
-        if (!order.getUser().getId().equals(user.getId())) {
+        if (!order.getUserId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to operate this order");
         }
 
@@ -154,18 +157,20 @@ public class OrderService {
         }
 
         order.setStatus(targetStatus);
-        orderRepository.save(order);
+        saveOrder(order);
 
         return toOrderResponse(order);
     }
 
     private void restoreInventory(Long orderId) {
-        List<OrderItem> orderItems = orderItemRepository.findAllByOrderIdOrderByIdAsc(orderId);
+        List<OrderItem> orderItems = orderItemMapper.findAllByOrderIdOrderByIdAsc(orderId);
         for (OrderItem orderItem : orderItems) {
-            Product product = productRepository.findById(orderItem.getProductId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+            Product product = productMapper.selectById(orderItem.getProductId());
+            if (product == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
+            }
             product.setStockQuantity(product.getStockQuantity() + orderItem.getQuantity());
-            productRepository.save(product);
+            saveProduct(product);
         }
     }
 
@@ -190,12 +195,12 @@ public class OrderService {
         return new OrderResponse(
                 order.getId(),
                 order.getOrderNo(),
-                order.getUser().getId(),
+                order.getUserId(),
                 order.getTotalItems(),
                 order.getTotalAmount(),
                 order.getStatus().name(),
                 order.getCreatedAt(),
-                orderItemRepository.findAllByOrderIdOrderByIdAsc(order.getId()).stream()
+                orderItemMapper.findAllByOrderIdOrderByIdAsc(order.getId()).stream()
                         .map(OrderItemResponse::from)
                         .toList()
         );
@@ -203,5 +208,88 @@ public class OrderService {
 
     private String buildOrderNo(Long userId) {
         return "ORD" + ORDER_NO_TIME.format(LocalDateTime.now()) + String.format("%04d", userId % 10000);
+    }
+
+    private User loadUser(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+        return user;
+    }
+
+    private List<CartItem> findCartItemsByUserId(Long userId) {
+        return cartItemMapper.findAllByUserIdOrderByUpdatedAtDescIdDesc(userId).stream()
+                .map(this::hydrateCartItem)
+                .toList();
+    }
+
+    private CartItem hydrateCartItem(CartItem item) {
+        if (item == null) {
+            return null;
+        }
+        if (item.getProduct() == null && item.getProductId() != null) {
+            Product product = productMapper.selectById(item.getProductId());
+            item.setProduct(hydrateProduct(product));
+        }
+        return item;
+    }
+
+    private Product hydrateProduct(Product product) {
+        if (product == null) {
+            return null;
+        }
+        if (product.getCategory() == null && product.getCategoryId() != null) {
+            Category category = categoryMapper.selectById(product.getCategoryId());
+            product.setCategory(category);
+        }
+        return product;
+    }
+
+    private void saveProduct(Product product) {
+        if (product.getCategoryId() == null && product.getCategory() != null) {
+            product.setCategoryId(product.getCategory().getId());
+        }
+        if (product.getMerchantId() == null && product.getMerchant() != null) {
+            product.setMerchantId(product.getMerchant().getId());
+        }
+
+        if (product.getId() == null) {
+            productMapper.insert(product);
+        } else {
+            productMapper.updateById(product);
+        }
+    }
+
+    private void saveOrder(Order order) {
+        if (order.getUserId() == null && order.getUser() != null) {
+            order.setUserId(order.getUser().getId());
+        }
+
+        if (order.getId() == null) {
+            if (order.getCreatedAt() == null) {
+                order.setCreatedAt(LocalDateTime.now());
+            }
+            orderMapper.insert(order);
+        } else {
+            orderMapper.updateById(order);
+        }
+    }
+
+    private void saveOrderItems(List<OrderItem> orderItems) {
+        for (OrderItem orderItem : orderItems) {
+            if (orderItem.getOrderId() == null && orderItem.getOrder() != null) {
+                orderItem.setOrderId(orderItem.getOrder().getId());
+            }
+            orderItemMapper.insert(orderItem);
+        }
+    }
+
+    private void deleteCartItems(List<CartItem> cartItems) {
+        for (CartItem cartItem : cartItems) {
+            if (cartItem.getId() != null) {
+                cartItemMapper.deleteById(cartItem.getId());
+            }
+        }
     }
 }

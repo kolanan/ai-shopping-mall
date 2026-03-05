@@ -1,13 +1,22 @@
 package com.aism.aishoppingmall.admin;
 
+import com.aism.aishoppingmall.admin.dto.AdminProductDTO;
+import com.aism.aishoppingmall.admin.dto.AdminStockInDTO;
+import com.aism.aishoppingmall.admin.vo.AdminCategoryVO;
+import com.aism.aishoppingmall.admin.vo.AdminProductVO;
+import com.aism.aishoppingmall.admin.vo.AdminUploadVO;
 import com.aism.aishoppingmall.category.Category;
-import com.aism.aishoppingmall.category.CategoryRepository;
+import com.aism.aishoppingmall.category.CategoryMapper;
+import com.aism.aishoppingmall.common.dto.PageQueryDTO;
+import com.aism.aishoppingmall.common.vo.PageResultVO;
 import com.aism.aishoppingmall.product.Product;
-import com.aism.aishoppingmall.product.ProductRepository;
+import com.aism.aishoppingmall.product.ProductMapper;
 import com.aism.aishoppingmall.product.SeaweedFsImageStorageService;
 import com.aism.aishoppingmall.user.User;
-import com.aism.aishoppingmall.user.UserRepository;
+import com.aism.aishoppingmall.user.UserMapper;
 import com.aism.aishoppingmall.user.UserRole;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,42 +28,59 @@ import java.util.List;
 @Service
 public class AdminProductService {
 
-    private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
+    private final ProductMapper productMapper;
+    private final CategoryMapper categoryMapper;
+    private final UserMapper userMapper;
     private final SeaweedFsImageStorageService imageStorageService;
 
     public AdminProductService(
-            ProductRepository productRepository,
-            CategoryRepository categoryRepository,
-            UserRepository userRepository,
+            ProductMapper productMapper,
+            CategoryMapper categoryMapper,
+            UserMapper userMapper,
             SeaweedFsImageStorageService imageStorageService
     ) {
-        this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-        this.userRepository = userRepository;
+        this.productMapper = productMapper;
+        this.categoryMapper = categoryMapper;
+        this.userMapper = userMapper;
         this.imageStorageService = imageStorageService;
     }
 
     @Transactional(readOnly = true)
-    public List<AdminCategoryResponse> getCategories() {
-        return categoryRepository.findAllByOrderByDisplayOrderAscIdAsc().stream()
-                .map(AdminCategoryResponse::from)
+    public List<AdminCategoryVO> getCategories() {
+        return categoryMapper.findAllOrderByDisplayOrderAscIdAsc().stream()
+                .map(AdminCategoryVO::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<AdminProductResponse> getMerchantProducts(Long merchantId) {
+    public PageResultVO<AdminProductVO> getMerchantProducts(Long merchantId, PageQueryDTO pageQuery) {
         User merchant = loadMerchant(merchantId);
-        return productRepository.findAllByMerchantIdOrderByDisplayOrderAscIdDesc(merchant.getId()).stream()
-                .map(AdminProductResponse::from)
+
+        Page<Product> page = pageQuery.toPage(50);
+        LambdaQueryWrapper<Product> query = new LambdaQueryWrapper<Product>()
+                .eq(Product::getMerchantId, merchant.getId())
+                .orderByAsc(Product::getDisplayOrder)
+                .orderByDesc(Product::getId);
+
+        Page<Product> productPage = productMapper.selectPage(page, query);
+        List<AdminProductVO> items = productPage.getRecords().stream()
+                .map(this::hydrateProduct)
+                .map(AdminProductVO::from)
                 .toList();
+
+        PageResultVO<AdminProductVO> result = new PageResultVO<>();
+        result.setRecords(items);
+        result.setTotal(productPage.getTotal());
+        result.setCurrent(productPage.getCurrent());
+        result.setSize(productPage.getSize());
+        result.setPages(productPage.getPages());
+        return result;
     }
 
     @Transactional
-    public AdminProductResponse createProduct(AdminProductRequest request) {
+    public AdminProductVO createProduct(AdminProductDTO request) {
         User merchant = loadMerchant(request.getMerchantId());
-        if (productRepository.existsBySlug(request.getSlug())) {
+        if (productMapper.countBySlug(request.getSlug()) > 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "商品标识已存在。");
         }
 
@@ -75,24 +101,22 @@ public class AdminProductService {
                 merchant
         );
 
-        return AdminProductResponse.from(productRepository.save(product));
+        return AdminProductVO.from(saveProduct(product));
     }
 
     @Transactional
-    public AdminProductResponse updateProduct(Long productId, AdminProductRequest request) {
+    public AdminProductVO updateProduct(Long productId, AdminProductDTO request) {
         User merchant = loadMerchant(request.getMerchantId());
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "商品不存在。"));
+        Product product = findProductById(productId);
 
         if (product.getMerchant() == null || !product.getMerchant().getId().equals(merchant.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权修改该商品。");
         }
 
-        productRepository.findBySlug(request.getSlug())
-                .filter(existing -> !existing.getId().equals(product.getId()))
-                .ifPresent(existing -> {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "商品标识已存在。");
-                });
+        Product existingBySlug = productMapper.findBySlug(request.getSlug());
+        if (existingBySlug != null && !existingBySlug.getId().equals(product.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "商品标识已存在。");
+        }
 
         product.setName(request.getName().trim());
         product.setSlug(request.getSlug().trim());
@@ -107,36 +131,71 @@ public class AdminProductService {
         product.setActive(request.getActive());
         product.setFeatured(request.getFeatured());
 
-        return AdminProductResponse.from(productRepository.save(product));
+        return AdminProductVO.from(saveProduct(product));
     }
 
     @Transactional
-    public AdminProductResponse stockInProduct(Long productId, AdminStockInRequest request) {
+    public AdminProductVO stockInProduct(Long productId, AdminStockInDTO request) {
         User merchant = loadMerchant(request.getMerchantId());
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "商品不存在。"));
+        Product product = findProductById(productId);
 
         if (product.getMerchant() == null || !product.getMerchant().getId().equals(merchant.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权操作该商品库存。");
         }
 
         product.setStockQuantity(product.getStockQuantity() + request.getQuantity());
-        return AdminProductResponse.from(productRepository.save(product));
+        return AdminProductVO.from(saveProduct(product));
     }
 
-    public AdminUploadResponse uploadProductImage(Long merchantId, MultipartFile file) {
+    public AdminUploadVO uploadProductImage(Long merchantId, MultipartFile file) {
         loadMerchant(merchantId);
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先选择图片文件。");
         }
 
         String imageUrl = imageStorageService.storeUploadedImage(file, "merchant-" + merchantId);
-        return new AdminUploadResponse(imageUrl);
+        return new AdminUploadVO(imageUrl);
+    }
+
+    private Product findProductById(Long productId) {
+        Product product = productMapper.selectById(productId);
+        if (product == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "商品不存在。");
+        }
+        return hydrateProduct(product);
+    }
+
+    private Product saveProduct(Product product) {
+        if (product.getCategoryId() == null && product.getCategory() != null) {
+            product.setCategoryId(product.getCategory().getId());
+        }
+        if (product.getMerchantId() == null && product.getMerchant() != null) {
+            product.setMerchantId(product.getMerchant().getId());
+        }
+
+        if (product.getId() == null) {
+            productMapper.insert(product);
+        } else {
+            productMapper.updateById(product);
+        }
+        return hydrateProduct(product);
+    }
+
+    private Product hydrateProduct(Product product) {
+        if (product.getCategory() == null && product.getCategoryId() != null) {
+            product.setCategory(categoryMapper.selectById(product.getCategoryId()));
+        }
+        if (product.getMerchant() == null && product.getMerchantId() != null) {
+            product.setMerchant(userMapper.selectById(product.getMerchantId()));
+        }
+        return product;
     }
 
     private User loadMerchant(Long merchantId) {
-        User merchant = userRepository.findById(merchantId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "商户不存在。"));
+        User merchant = userMapper.selectById(merchantId);
+        if (merchant == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "商户不存在。");
+        }
         if (merchant.getRole() != UserRole.MERCHANT) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "当前账号不是商户账号。");
         }
@@ -144,7 +203,10 @@ public class AdminProductService {
     }
 
     private Category loadCategory(String categorySlug) {
-        return categoryRepository.findBySlug(categorySlug)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "商品分类不存在。"));
+        Category category = categoryMapper.findBySlug(categorySlug);
+        if (category == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "商品分类不存在。");
+        }
+        return category;
     }
 }

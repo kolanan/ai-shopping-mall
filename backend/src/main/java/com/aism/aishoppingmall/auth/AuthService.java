@@ -1,8 +1,8 @@
 package com.aism.aishoppingmall.auth;
 
 import com.aism.aishoppingmall.user.User;
+import com.aism.aishoppingmall.user.UserMapper;
 import com.aism.aishoppingmall.user.UserRole;
-import com.aism.aishoppingmall.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,11 +13,11 @@ import java.util.Locale;
 @Service
 public class AuthService {
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
+    public AuthService(UserMapper userMapper, PasswordEncoder passwordEncoder) {
+        this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -32,16 +32,17 @@ public class AuthService {
     private AuthResponse register(RegisterRequest request, UserRole role, String successMessage) {
         String normalizedEmail = normalizeEmail(request.getEmail());
 
-        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+        if (userMapper.countByEmailIgnoreCase(normalizedEmail) > 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "该邮箱已被注册。");
         }
 
-        User user = userRepository.save(new User(
+        User user = new User(
                 request.getFullName().trim(),
                 normalizedEmail,
                 passwordEncoder.encode(request.getPassword()),
                 role
-        ));
+        );
+        userMapper.insert(user);
 
         return new AuthResponse(successMessage, AuthUserResponse.from(user));
     }
@@ -61,8 +62,10 @@ public class AuthService {
 
     private User authenticateUser(LoginRequest request) {
         String normalizedEmail = normalizeEmail(request.getEmail());
-        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "邮箱或密码错误。"));
+        User user = userMapper.findByEmailIgnoreCase(normalizedEmail);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "邮箱或密码错误。");
+        }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "邮箱或密码错误。");

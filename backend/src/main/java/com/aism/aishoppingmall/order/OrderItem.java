@@ -4,10 +4,17 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @TableName("order_items")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem {
 
     @TableId(type = IdType.AUTO)
@@ -35,9 +42,6 @@ public class OrderItem {
     @TableField("line_total")
     private BigDecimal lineTotal;
 
-    protected OrderItem() {
-    }
-
     public OrderItem(
             Order order,
             Long productId,
@@ -56,48 +60,8 @@ public class OrderItem {
         this.lineTotal = lineTotal;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public Long getOrderId() {
-        return orderId;
-    }
-
-    public void setOrderId(Long orderId) {
-        this.orderId = orderId;
-    }
-
-    public Order getOrder() {
-        return order;
-    }
-
     public void setOrder(Order order) {
         this.order = order;
         this.orderId = order == null ? null : order.getId();
-    }
-
-    public Long getProductId() {
-        return productId;
-    }
-
-    public String getProductName() {
-        return productName;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public BigDecimal getUnitPrice() {
-        return unitPrice;
-    }
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public BigDecimal getLineTotal() {
-        return lineTotal;
     }
 }

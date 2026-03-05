@@ -129,6 +129,12 @@ function CatalogPage({
                     <strong>{formatPrice(product.price)}</strong>
                     <span>评分 {product.rating}</span>
                   </div>
+                  <Link
+                    to={APP_ROUTES.PRODUCT_DETAIL.replace(":slug", product.slug)}
+                    className="section-link-button"
+                  >
+                    查看详情
+                  </Link>
                   <button
                     type="button"
                     onClick={() => onAddToCart(product.id)}

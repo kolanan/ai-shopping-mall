@@ -216,6 +216,16 @@ export function useAppController() {
     void merchant.refreshProducts(currentUser.id);
   }, [merchant.refreshProducts, currentUser?.id, currentUser?.role]);
 
+  const handleChangeMerchantProductPage = useCallback(
+    (page) => {
+      if (currentUser?.role !== "MERCHANT") {
+        return;
+      }
+      void merchant.refreshProducts(currentUser.id, page);
+    },
+    [merchant.refreshProducts, currentUser?.id, currentUser?.role]
+  );
+
   const handleCreateMerchantProduct = useCallback(async () => {
     if (currentUser?.role !== "MERCHANT") {
       return;
@@ -224,10 +234,47 @@ export function useAppController() {
     try {
       await merchant.createProduct(currentUser.id);
       setFeedback({ type: "success", message: "商品创建成功。" });
+      navigate(APP_ROUTES.MERCHANT_DASHBOARD);
     } catch {
       // merchant module already set error
     }
-  }, [merchant.createProduct, currentUser?.id, currentUser?.role]);
+  }, [merchant.createProduct, currentUser?.id, currentUser?.role, navigate]);
+
+  const handleUploadMerchantProductImage = useCallback(
+    async (file) => {
+      if (currentUser?.role !== "MERCHANT") {
+        return;
+      }
+
+      try {
+        const imageUrl = await merchant.uploadProductImage(currentUser.id, file);
+        setFeedback({ type: "success", message: "图片上传成功。" });
+        return imageUrl;
+      } catch {
+        // merchant module already set error
+        return undefined;
+      }
+    },
+    [merchant.uploadProductImage, currentUser?.id, currentUser?.role]
+  );
+
+  const handleUpdateMerchantProduct = useCallback(
+    async (productId, form) => {
+      if (currentUser?.role !== "MERCHANT") {
+        return false;
+      }
+
+      try {
+        await merchant.updateProduct(currentUser.id, productId, form);
+        setFeedback({ type: "success", message: "商品更新成功。" });
+        return true;
+      } catch {
+        // merchant module already set error
+        return false;
+      }
+    },
+    [merchant.updateProduct, currentUser?.id, currentUser?.role]
+  );
 
   const handleStockInMerchantProduct = useCallback(
     async (productId, quantity) => {
@@ -385,7 +432,10 @@ export function useAppController() {
       handleRefreshOrders,
       handlePayOrder,
       handleRefreshMerchantProducts,
+      handleChangeMerchantProductPage,
       handleCreateMerchantProduct,
+      handleUpdateMerchantProduct,
+      handleUploadMerchantProductImage,
       handleStockInMerchantProduct,
       handleLoginModeChange,
       handleMerchantModeChange,
@@ -400,7 +450,10 @@ export function useAppController() {
       handleRefreshOrders,
       handlePayOrder,
       handleRefreshMerchantProducts,
+      handleChangeMerchantProductPage,
       handleCreateMerchantProduct,
+      handleUpdateMerchantProduct,
+      handleUploadMerchantProductImage,
       handleStockInMerchantProduct,
       handleLoginModeChange,
       handleMerchantModeChange,

@@ -1,11 +1,12 @@
 package com.aism.aishoppingmall.config;
 
 import com.aism.aishoppingmall.category.Category;
-import com.aism.aishoppingmall.category.CategoryRepository;
+import com.aism.aishoppingmall.category.CategoryMapper;
 import com.aism.aishoppingmall.product.Product;
-import com.aism.aishoppingmall.product.ProductRepository;
+import com.aism.aishoppingmall.product.ProductMapper;
 import com.aism.aishoppingmall.product.SeaweedFsImageStorageService;
-import com.aism.aishoppingmall.user.UserRepository;
+import com.aism.aishoppingmall.user.User;
+import com.aism.aishoppingmall.user.UserMapper;
 import com.aism.aishoppingmall.user.UserRole;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -22,19 +23,19 @@ public class DataInitializer {
 
     @Bean
     CommandLineRunner seedCatalog(
-            CategoryRepository categoryRepository,
-            ProductRepository productRepository,
+            CategoryMapper categoryMapper,
+            ProductMapper productMapper,
             SeaweedFsImageStorageService imageStorageService,
-            UserRepository userRepository,
+            UserMapper userMapper,
             PasswordEncoder passwordEncoder
     ) {
         return args -> {
-            ensureMerchantUser(userRepository, passwordEncoder);
+            ensureMerchantUser(userMapper, passwordEncoder);
             Map<String, Category> categoriesBySlug = new LinkedHashMap<>();
-            categoriesBySlug.put("electronics", ensureCategory(categoryRepository, "Electronics", "electronics", 1));
-            categoriesBySlug.put("kitchen", ensureCategory(categoryRepository, "Kitchen", "kitchen", 2));
-            categoriesBySlug.put("furniture", ensureCategory(categoryRepository, "Furniture", "furniture", 3));
-            categoriesBySlug.put("home", ensureCategory(categoryRepository, "Home", "home", 4));
+            categoriesBySlug.put("electronics", ensureCategory(categoryMapper, "Electronics", "electronics", 1));
+            categoriesBySlug.put("kitchen", ensureCategory(categoryMapper, "Kitchen", "kitchen", 2));
+            categoriesBySlug.put("furniture", ensureCategory(categoryMapper, "Furniture", "furniture", 3));
+            categoriesBySlug.put("home", ensureCategory(categoryMapper, "Home", "home", 4));
 
             List<SeedProduct> seedProducts = List.of(
                     new SeedProduct("Aurora Wireless Headphones", "aurora-wireless-headphones", "Noise-cancelling over-ear headphones with 40-hour battery life.", "129.99", "4.7", "Best Seller", "https://placehold.co/640x640?text=Headphones", true, 35, 1, "electronics"),
@@ -59,48 +60,58 @@ public class DataInitializer {
                         seed.imageUrl()
                 );
 
-                productRepository.findBySlug(seed.slug())
-                        .ifPresentOrElse(existingProduct -> {
-                            if (existingProduct.getImageUrl() == null
-                                    || existingProduct.getImageUrl().isBlank()
-                                    || existingProduct.getImageUrl().contains("placehold.co")) {
-                                existingProduct.setImageUrl(imageUrl);
-                                productRepository.save(existingProduct);
-                            }
-                        }, () -> productRepository.save(new Product(
-                                seed.name(),
-                                seed.slug(),
-                                seed.description(),
-                                new BigDecimal(seed.price()),
-                                new BigDecimal(seed.rating()),
-                                seed.badge(),
-                                imageUrl,
-                                true,
-                                seed.featured(),
-                                seed.stockQuantity(),
-                                seed.displayOrder(),
-                                categoriesBySlug.get(seed.categorySlug()),
-                                null
-                        )));
+                Product existingProduct = productMapper.findBySlug(seed.slug());
+                if (existingProduct != null) {
+                    if (existingProduct.getImageUrl() == null
+                            || existingProduct.getImageUrl().isBlank()
+                            || existingProduct.getImageUrl().contains("placehold.co")) {
+                        existingProduct.setImageUrl(imageUrl);
+                        productMapper.updateById(existingProduct);
+                    }
+                } else {
+                    Product product = new Product(
+                            seed.name(),
+                            seed.slug(),
+                            seed.description(),
+                            new BigDecimal(seed.price()),
+                            new BigDecimal(seed.rating()),
+                            seed.badge(),
+                            imageUrl,
+                            true,
+                            seed.featured(),
+                            seed.stockQuantity(),
+                            seed.displayOrder(),
+                            categoriesBySlug.get(seed.categorySlug()),
+                            null
+                    );
+                    productMapper.insert(product);
+                }
             }
         };
     }
 
-    private void ensureMerchantUser(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    private void ensureMerchantUser(UserMapper userMapper, PasswordEncoder passwordEncoder) {
         String email = "merchant@aism.com";
-        if (!userRepository.existsByEmailIgnoreCase(email)) {
-            userRepository.save(new com.aism.aishoppingmall.user.User(
+        if (userMapper.countByEmailIgnoreCase(email) == 0) {
+            User user = new User(
                     "演示商户",
                     email,
                     passwordEncoder.encode("merchant123"),
                     UserRole.MERCHANT
-            ));
+            );
+            userMapper.insert(user);
         }
     }
 
-    private Category ensureCategory(CategoryRepository categoryRepository, String name, String slug, int displayOrder) {
-        return categoryRepository.findBySlug(slug)
-                .orElseGet(() -> categoryRepository.save(new Category(name, slug, displayOrder)));
+    private Category ensureCategory(CategoryMapper categoryMapper, String name, String slug, int displayOrder) {
+        Category category = categoryMapper.findBySlug(slug);
+        if (category != null) {
+            return category;
+        }
+
+        Category newCategory = new Category(name, slug, displayOrder);
+        categoryMapper.insert(newCategory);
+        return newCategory;
     }
 
     private record SeedProduct(

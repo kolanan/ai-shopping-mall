@@ -13,7 +13,37 @@ export async function fetchAdminCategories() {
 
 export async function fetchMerchantProducts(merchantId) {
   const response = await fetch(`/api/admin/products?merchantId=${encodeURIComponent(merchantId)}`);
-  return parseResponse(response, "商户商品加载失败。");
+  const data = await parseResponse(response, "商户商品加载失败。");
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      page: 1,
+      size: data.length || 10,
+      totalPages: 1
+    };
+  }
+  return data;
+}
+
+export async function fetchMerchantProductPage(merchantId, page = 1, size = 10) {
+  const query = new URLSearchParams({
+    merchantId: String(merchantId),
+    current: String(page),
+    size: String(size)
+  });
+  const response = await fetch(`/api/admin/products?${query.toString()}`);
+  const data = await parseResponse(response, "商户商品加载失败。");
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      page: 1,
+      size,
+      totalPages: 1
+    };
+  }
+  return data;
 }
 
 export async function createMerchantProduct(payload) {
