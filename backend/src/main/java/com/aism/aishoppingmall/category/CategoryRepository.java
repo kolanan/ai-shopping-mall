@@ -1,14 +1,37 @@
 package com.aism.aishoppingmall.category;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface CategoryRepository extends JpaRepository<Category, Long> {
+@Repository
+public class CategoryRepository {
 
-    List<Category> findAllByOrderByDisplayOrderAscIdAsc();
+    private final CategoryMapper categoryMapper;
 
-    Optional<Category> findBySlug(String slug);
+    public CategoryRepository(CategoryMapper categoryMapper) {
+        this.categoryMapper = categoryMapper;
+    }
+
+    public List<Category> findAllByOrderByDisplayOrderAscIdAsc() {
+        return categoryMapper.findAllOrderByDisplayOrderAscIdAsc();
+    }
+
+    public Optional<Category> findBySlug(String slug) {
+        return Optional.ofNullable(categoryMapper.findBySlug(slug));
+    }
+
+    public Optional<Category> findById(Long id) {
+        return Optional.ofNullable(categoryMapper.selectById(id));
+    }
+
+    public Category save(Category category) {
+        if (category.getId() == null) {
+            categoryMapper.insert(category);
+        } else {
+            categoryMapper.updateById(category);
+        }
+        return category;
+    }
 }
-

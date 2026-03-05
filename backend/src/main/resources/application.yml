@@ -1,19 +1,16 @@
-spring:
+﻿spring:
   application:
     name: ai-shopping-mall-backend
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://10.12.61.26:3534/ai_shopping_mall?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true}
     username: ${SPRING_DATASOURCE_USERNAME:trade-manage}
     password: ${SPRING_DATASOURCE_PASSWORD:QAZ123wsx!!}
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
-    database-platform: org.hibernate.dialect.MySQLDialect
-    show-sql: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
 
 server:
   port: 8080
@@ -24,3 +21,6 @@ app:
   seaweedfs:
     server:
       addr: ${APP_SEAWEEDFS_SERVER_ADDR:http://10.12.19.126:9333}
+
+knife4j:
+  enable: true

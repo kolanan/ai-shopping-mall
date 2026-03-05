@@ -1,22 +1,27 @@
 package com.aism.aishoppingmall.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+@Schema(description = "User register request")
 public class RegisterRequest {
 
-    @NotBlank(message = "姓名不能为空。")
-    @Size(min = 2, max = 80, message = "姓名长度需在 2 到 80 个字符之间。")
+    @Schema(description = "Full name", example = "Zhang San")
+    @NotBlank(message = "Full name must not be blank")
+    @Size(min = 2, max = 80, message = "Full name length must be between 2 and 80")
     private String fullName;
 
-    @NotBlank(message = "邮箱不能为空。")
-    @Email(message = "请输入有效的邮箱地址。")
-    @Size(max = 120, message = "邮箱长度不能超过 120 个字符。")
+    @Schema(description = "Email", example = "zhangsan@example.com")
+    @NotBlank(message = "Email must not be blank")
+    @Email(message = "Email format is invalid")
+    @Size(max = 120, message = "Email length must be less than or equal to 120")
     private String email;
 
-    @NotBlank(message = "密码不能为空。")
-    @Size(min = 6, max = 72, message = "密码长度需在 6 到 72 个字符之间。")
+    @Schema(description = "Password", example = "Abc123456")
+    @NotBlank(message = "Password must not be blank")
+    @Size(min = 6, max = 72, message = "Password length must be between 6 and 72")
     private String password;
 
     public String getFullName() {

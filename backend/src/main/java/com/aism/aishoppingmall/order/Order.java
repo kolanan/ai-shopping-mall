@@ -11,7 +11,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
@@ -28,8 +27,11 @@ public class Order {
     @Column(name = "order_no", nullable = false, unique = true, length = 40)
     private String orderNo;
 
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
     private User user;
 
     @Column(name = "total_items", nullable = false)
@@ -50,15 +52,10 @@ public class Order {
 
     public Order(String orderNo, User user, Integer totalItems, BigDecimal totalAmount, OrderStatus status) {
         this.orderNo = orderNo;
-        this.user = user;
+        setUser(user);
         this.totalItems = totalItems;
         this.totalAmount = totalAmount;
         this.status = status;
-    }
-
-    @PrePersist
-    void onCreate() {
-        createdAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -69,8 +66,21 @@ public class Order {
         return orderNo;
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
     public User getUser() {
         return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+        this.userId = user == null ? null : user.getId();
     }
 
     public Integer getTotalItems() {
@@ -91,5 +101,9 @@ public class Order {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

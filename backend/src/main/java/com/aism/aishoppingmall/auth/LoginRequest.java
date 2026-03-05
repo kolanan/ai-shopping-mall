@@ -1,15 +1,19 @@
 package com.aism.aishoppingmall.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
+@Schema(description = "User login request")
 public class LoginRequest {
 
-    @NotBlank(message = "邮箱不能为空。")
-    @Email(message = "请输入有效的邮箱地址。")
+    @Schema(description = "Email", example = "zhangsan@example.com")
+    @NotBlank(message = "Email must not be blank")
+    @Email(message = "Email format is invalid")
     private String email;
 
-    @NotBlank(message = "密码不能为空。")
+    @Schema(description = "Password", example = "Abc123456")
+    @NotBlank(message = "Password must not be blank")
     private String password;
 
     public String getEmail() {

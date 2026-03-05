@@ -55,12 +55,18 @@ public class Product {
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder;
 
+    @Column(name = "category_id", nullable = false)
+    private Long categoryId;
+
+    @Column(name = "merchant_id")
+    private Long merchantId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = false, insertable = false, updatable = false)
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "merchant_id")
+    @JoinColumn(name = "merchant_id", insertable = false, updatable = false)
     private User merchant;
 
     protected Product() {
@@ -92,8 +98,8 @@ public class Product {
         this.featured = featured;
         this.stockQuantity = stockQuantity;
         this.displayOrder = displayOrder;
-        this.category = category;
-        this.merchant = merchant;
+        setCategory(category);
+        setMerchant(merchant);
     }
 
     public Long getId() {
@@ -164,12 +170,29 @@ public class Product {
         this.displayOrder = displayOrder;
     }
 
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public Long getMerchantId() {
+        return merchantId;
+    }
+
+    public void setMerchantId(Long merchantId) {
+        this.merchantId = merchantId;
+    }
+
     public Category getCategory() {
         return category;
     }
 
     public void setCategory(Category category) {
         this.category = category;
+        this.categoryId = category == null ? null : category.getId();
     }
 
     public User getMerchant() {
@@ -178,6 +201,7 @@ public class Product {
 
     public void setMerchant(User merchant) {
         this.merchant = merchant;
+        this.merchantId = merchant == null ? null : merchant.getId();
     }
 
     public void setName(String name) {

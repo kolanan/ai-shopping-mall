@@ -20,8 +20,11 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "order_id", nullable = false)
+    private Long orderId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id", nullable = false, insertable = false, updatable = false)
     private Order order;
 
     @Column(name = "product_id", nullable = false)
@@ -54,7 +57,7 @@ public class OrderItem {
             Integer quantity,
             BigDecimal lineTotal
     ) {
-        this.order = order;
+        setOrder(order);
         this.productId = productId;
         this.productName = productName;
         this.category = category;
@@ -65,6 +68,23 @@ public class OrderItem {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
+    }
+
+    public Order getOrder() {
+        return order;
+    }
+
+    public void setOrder(Order order) {
+        this.order = order;
+        this.orderId = order == null ? null : order.getId();
     }
 
     public Long getProductId() {

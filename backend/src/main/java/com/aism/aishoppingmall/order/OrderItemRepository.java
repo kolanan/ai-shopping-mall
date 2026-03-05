@@ -1,10 +1,28 @@
 package com.aism.aishoppingmall.order;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
+@Repository
+public class OrderItemRepository {
 
-    List<OrderItem> findAllByOrderIdOrderByIdAsc(Long orderId);
+    private final OrderItemMapper orderItemMapper;
+
+    public OrderItemRepository(OrderItemMapper orderItemMapper) {
+        this.orderItemMapper = orderItemMapper;
+    }
+
+    public List<OrderItem> findAllByOrderIdOrderByIdAsc(Long orderId) {
+        return orderItemMapper.findAllByOrderIdOrderByIdAsc(orderId);
+    }
+
+    public void saveAll(List<OrderItem> orderItems) {
+        for (OrderItem orderItem : orderItems) {
+            if (orderItem.getOrderId() == null && orderItem.getOrder() != null) {
+                orderItem.setOrderId(orderItem.getOrder().getId());
+            }
+            orderItemMapper.insert(orderItem);
+        }
+    }
 }

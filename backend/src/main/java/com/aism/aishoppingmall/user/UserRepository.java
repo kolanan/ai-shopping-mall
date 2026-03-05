@@ -1,12 +1,36 @@
 package com.aism.aishoppingmall.user;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, Long> {
+@Repository
+public class UserRepository {
 
-    boolean existsByEmailIgnoreCase(String email);
+    private final UserMapper userMapper;
 
-    Optional<User> findByEmailIgnoreCase(String email);
+    public UserRepository(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    public boolean existsByEmailIgnoreCase(String email) {
+        return userMapper.countByEmailIgnoreCase(email) > 0;
+    }
+
+    public Optional<User> findByEmailIgnoreCase(String email) {
+        return Optional.ofNullable(userMapper.findByEmailIgnoreCase(email));
+    }
+
+    public Optional<User> findById(Long id) {
+        return Optional.ofNullable(userMapper.selectById(id));
+    }
+
+    public User save(User user) {
+        if (user.getId() == null) {
+            userMapper.insert(user);
+        } else {
+            userMapper.updateById(user);
+        }
+        return user;
+    }
 }

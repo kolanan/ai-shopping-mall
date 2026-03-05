@@ -50,16 +50,16 @@ public class OrderService {
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "用户不存在。"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         List<CartItem> cartItems = cartItemRepository.findAllByUserIdOrderByUpdatedAtDescIdDesc(user.getId());
 
         if (cartItems.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "购物车为空，无法下单。");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty");
         }
 
         CartCheckoutValidationResponse validation = cartService.validateCheckout(user.getId());
         if (!validation.valid()) {
-          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "库存校验未通过，无法下单。");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart validation failed");
         }
 
         int totalItems = cartItems.stream()
@@ -80,6 +80,7 @@ public class OrderService {
         List<OrderItem> orderItems = cartItems.stream()
                 .map(item -> {
                     item.getProduct().setStockQuantity(item.getProduct().getStockQuantity() - item.getQuantity());
+                    productRepository.save(item.getProduct());
                     return new OrderItem(
                             order,
                             item.getProduct().getId(),
@@ -110,7 +111,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponse> getOrders(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "用户不存在。"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         return orderRepository.findAllByUserIdOrderByCreatedAtDescIdDesc(user.getId()).stream()
                 .map(order -> new OrderResponse(
@@ -131,19 +132,19 @@ public class OrderService {
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "用户不存在。"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "订单不存在。"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
 
         if (!order.getUser().getId().equals(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权操作该订单。");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to operate this order");
         }
 
         OrderStatus targetStatus;
         try {
             targetStatus = OrderStatus.valueOf(request.getStatus().trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "目标状态不合法。");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target status");
         }
 
         validateTransition(order.getStatus(), targetStatus);
@@ -162,8 +163,9 @@ public class OrderService {
         List<OrderItem> orderItems = orderItemRepository.findAllByOrderIdOrderByIdAsc(orderId);
         for (OrderItem orderItem : orderItems) {
             Product product = productRepository.findById(orderItem.getProductId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "商品不存在。"));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
             product.setStockQuantity(product.getStockQuantity() + orderItem.getQuantity());
+            productRepository.save(product);
         }
     }
 
@@ -180,7 +182,7 @@ public class OrderService {
         };
 
         if (!valid) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "当前订单状态不允许这样流转。");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order status transition is not allowed");
         }
     }
 
