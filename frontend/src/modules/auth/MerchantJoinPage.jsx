@@ -1,4 +1,5 @@
-﻿import { Link } from "react-router-dom";
+﻿import "./AuthPages.css";
+import { Link } from "react-router-dom";
 import { APP_ROUTES } from "../../router/paths";
 
 function MerchantJoinPage({ merchantForm, setMerchantForm, merchantSubmitting, merchantFeedback, onSubmit }) {
@@ -53,5 +54,6 @@ function MerchantJoinPage({ merchantForm, setMerchantForm, merchantSubmitting, m
 }
 
 export default MerchantJoinPage;
+
 
 

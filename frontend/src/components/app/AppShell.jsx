@@ -1,4 +1,5 @@
-﻿import CartDrawer from "../../modules/cart/CartDrawer";
+﻿import "../../styles/common.css";
+import CartDrawer from "../../modules/cart/CartDrawer";
 
 function AppShell({ routeElement, cartDrawerProps }) {
   return (
@@ -10,3 +11,4 @@ function AppShell({ routeElement, cartDrawerProps }) {
 }
 
 export default AppShell;
+

@@ -1,4 +1,5 @@
-﻿import { Link } from "react-router-dom";
+﻿import "./CatalogPage.css";
+import { Link } from "react-router-dom";
 import { APP_ROUTES } from "../../router/paths";
 import SiteHeader from "../../components/layout/SiteHeader";
 import SiteFooter from "../../components/layout/SiteFooter";
@@ -136,6 +137,7 @@ function CatalogPage({
 }
 
 export default CatalogPage;
+
 
 
 

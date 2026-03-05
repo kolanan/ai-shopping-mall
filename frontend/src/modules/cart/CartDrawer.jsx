@@ -1,4 +1,5 @@
-﻿import { formatPrice } from "../../utils/formatters";
+﻿import "./CartDrawer.css";
+import { formatPrice } from "../../utils/formatters";
 
 function CartDrawer({
   open,
@@ -112,3 +113,4 @@ function CartDrawer({
 }
 
 export default CartDrawer;
+

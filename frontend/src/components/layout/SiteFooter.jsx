@@ -1,4 +1,5 @@
-﻿function SiteFooter() {
+﻿import "./SiteFooter.css";
+function SiteFooter() {
   return (
     <footer className="site-footer">
       <div>智选商城 · 订单、购物车、商品数据实时同步</div>
@@ -8,3 +9,4 @@
 }
 
 export default SiteFooter;
+

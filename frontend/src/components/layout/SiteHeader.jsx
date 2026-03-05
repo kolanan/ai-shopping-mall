@@ -1,4 +1,5 @@
-﻿import { Link } from "react-router-dom";
+﻿import "./SiteHeader.css";
+import { Link } from "react-router-dom";
 import { APP_ROUTES } from "../../router/paths";
 
 function SiteHeader({ currentUser, cartTotalItems, onToggleCart, onLogout }) {
@@ -58,5 +59,6 @@ function SiteHeader({ currentUser, cartTotalItems, onToggleCart, onLogout }) {
 }
 
 export default SiteHeader;
+
 
 

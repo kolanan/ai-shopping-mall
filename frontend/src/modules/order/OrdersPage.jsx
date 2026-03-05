@@ -1,4 +1,5 @@
-﻿import { Navigate } from "react-router-dom";
+﻿import "./OrdersPage.css";
+import { Navigate } from "react-router-dom";
 import { APP_ROUTES } from "../../router/paths";
 import SiteHeader from "../../components/layout/SiteHeader";
 import SiteFooter from "../../components/layout/SiteFooter";
@@ -96,5 +97,6 @@ function OrdersPage({
 }
 
 export default OrdersPage;
+
 
 
