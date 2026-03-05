@@ -1,0 +1,15 @@
+.DS_Store
+Thumbs.db
+node_modules/
+.npm-cache/
+dist/
+build/
+.idea/
+.vscode/
+*.iml
+*.log
+.env
+frontend/node_modules/
+frontend/dist/
+backend/target/
+
