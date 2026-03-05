@@ -1,4 +1,16 @@
-const AUTH_STORAGE_KEY = "aism.currentUser";
+﻿const AUTH_STORAGE_KEY = "aism.currentUser";
+
+function normalizeAuthUser(payload) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  if (payload.user && typeof payload.user === "object") {
+    return payload.user;
+  }
+
+  return payload;
+}
 
 async function request(path, payload) {
   const response = await fetch(path, {
@@ -15,7 +27,7 @@ async function request(path, payload) {
     throw new Error(data.message || "认证请求失败。");
   }
 
-  return data;
+  return normalizeAuthUser(data);
 }
 
 export async function login(credentials) {
@@ -38,7 +50,7 @@ export function loadStoredUser() {
   }
 
   try {
-    return JSON.parse(raw);
+    return normalizeAuthUser(JSON.parse(raw));
   } catch {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
@@ -46,7 +58,13 @@ export function loadStoredUser() {
 }
 
 export function storeUser(user) {
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  const normalized = normalizeAuthUser(user);
+
+  if (!normalized) {
+    return;
+  }
+
+  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalized));
 }
 
 export function clearStoredUser() {

@@ -1,13 +1,22 @@
-﻿
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { clearStoredUser, loadStoredUser, login, register, registerMerchant, storeUser } from "./api/auth";
-import { fetchCatalogProducts } from "./api/products";
+import { addCartItem, fetchCart, removeCartItem, updateCartItem } from "./api/cart";
+import { createOrder, fetchOrders } from "./api/orders";
+import { fetchFeaturedProducts } from "./api/products";
 
 const DEFAULT_AUTH_FORM = {
   fullName: "",
   email: "",
   password: ""
+};
+
+const ORDER_STATUS_LABELS = {
+  CREATED: "待支付",
+  PAID: "已支付",
+  SHIPPED: "已发货",
+  COMPLETED: "已完成",
+  CANCELLED: "已取消"
 };
 
 function formatPrice(value) {
@@ -16,6 +25,17 @@ function formatPrice(value) {
     style: "currency",
     currency: "CNY"
   }).format(amount);
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
 }
 
 function App() {
@@ -39,6 +59,17 @@ function App() {
   const [merchantForm, setMerchantForm] = useState(DEFAULT_AUTH_FORM);
   const [merchantSubmitting, setMerchantSubmitting] = useState(false);
   const [merchantFeedback, setMerchantFeedback] = useState(null);
+
+  const [cartData, setCartData] = useState({ totalItems: 0, totalAmount: 0, items: [] });
+  const [cartLoading, setCartLoading] = useState(false);
+  const [cartBusyItemId, setCartBusyItemId] = useState(null);
+  const [cartSubmittingOrder, setCartSubmittingOrder] = useState(false);
+  const [cartError, setCartError] = useState("");
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
 
   const categoryOptions = useMemo(() => {
     const map = new Map();
@@ -83,16 +114,126 @@ function App() {
     }
   }, [location.pathname, location.search]);
 
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setCartData({ totalItems: 0, totalAmount: 0, items: [] });
+      setOrders([]);
+      setCartError("");
+      setOrdersError("");
+      setCartOpen(false);
+      return;
+    }
+
+    void Promise.all([loadCart(currentUser.id), loadOrders(currentUser.id)]);
+  }, [currentUser?.id]);
+
   async function loadProducts() {
     setProductsLoading(true);
     setProductsError("");
     try {
-      const data = await fetchCatalogProducts();
+      const data = await fetchFeaturedProducts();
       setProducts(data);
     } catch (error) {
       setProductsError(error.message);
     } finally {
       setProductsLoading(false);
+    }
+  }
+
+  async function loadCart(userId) {
+    setCartLoading(true);
+    setCartError("");
+    try {
+      const data = await fetchCart(userId);
+      setCartData(data);
+    } catch (error) {
+      setCartError(error.message);
+    } finally {
+      setCartLoading(false);
+    }
+  }
+
+  async function loadOrders(userId) {
+    setOrdersLoading(true);
+    setOrdersError("");
+    try {
+      const data = await fetchOrders(userId);
+      setOrders(data);
+    } catch (error) {
+      setOrdersError(error.message);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }
+
+  async function handleAddToCart(productId) {
+    if (!currentUser?.id) {
+      setFeedback({ type: "error", message: "请先登录后再加入购物车。" });
+      navigate("/login");
+      return;
+    }
+
+    setFeedback(null);
+    try {
+      const data = await addCartItem({ userId: currentUser.id, productId, quantity: 1 });
+      setCartData(data);
+      setCartOpen(true);
+      setFeedback({ type: "success", message: "已加入购物车。" });
+    } catch (error) {
+      setFeedback({ type: "error", message: error.message });
+    }
+  }
+
+  async function handleUpdateCartQuantity(itemId, nextQuantity) {
+    if (!currentUser?.id || nextQuantity < 1) {
+      return;
+    }
+
+    setCartBusyItemId(itemId);
+    setCartError("");
+    try {
+      const data = await updateCartItem(itemId, { userId: currentUser.id, quantity: nextQuantity });
+      setCartData(data);
+    } catch (error) {
+      setCartError(error.message);
+    } finally {
+      setCartBusyItemId(null);
+    }
+  }
+
+  async function handleRemoveCartItem(itemId) {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    setCartBusyItemId(itemId);
+    setCartError("");
+    try {
+      const data = await removeCartItem(itemId, currentUser.id);
+      setCartData(data);
+    } catch (error) {
+      setCartError(error.message);
+    } finally {
+      setCartBusyItemId(null);
+    }
+  }
+
+  async function handleCreateOrder() {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    setCartSubmittingOrder(true);
+    setCartError("");
+    try {
+      await createOrder({ userId: currentUser.id });
+      setFeedback({ type: "success", message: "订单创建成功。" });
+      await Promise.all([loadCart(currentUser.id), loadOrders(currentUser.id), loadProducts()]);
+      navigate("/orders");
+    } catch (error) {
+      setCartError(error.message);
+    } finally {
+      setCartSubmittingOrder(false);
     }
   }
 
@@ -162,7 +303,7 @@ function App() {
             <div className="brand-mark">商</div>
             <div>
               <div className="brand-name">智选商城</div>
-              <div className="brand-tag">商城首页与商户入驻页已拆分</div>
+              <div className="brand-tag">精选商品 · 购物车抽屉 · 独立订单页</div>
             </div>
           </Link>
 
@@ -173,6 +314,12 @@ function App() {
                   {currentUser.fullName}
                   {currentUser.role === "MERCHANT" ? " · 商户" : " · 用户"}
                 </div>
+                <Link to="/orders" className="nav-button">
+                  我的订单
+                </Link>
+                <button type="button" className="nav-button" onClick={() => setCartOpen((prev) => !prev)}>
+                  购物车 {cartData.totalItems || 0}
+                </button>
                 <button type="button" className="nav-button secondary" onClick={handleLogout}>
                   退出
                 </button>
@@ -204,15 +351,15 @@ function App() {
         <main>
           <section className="home-hero">
             <div className="home-hero-copy">
-              <p className="eyebrow">Mall Homepage</p>
-              <h1>重新生成的商城首页，专注商品浏览和购买决策。</h1>
-              <p>商户入驻现在是独立页面，登录页也提供了明确的商户入驻入口。</p>
+              <p className="eyebrow">Featured Mall</p>
+              <h1>首页展示精选商品，支持加入购物车并直接创建订单。</h1>
+              <p>购物车已改为右侧 Tab 抽屉，订单改为独立页面查询与管理。</p>
               <div className="hero-actions">
-                <Link to="/login" className="button-like">
-                  去登录
-                </Link>
-                <Link to="/merchant/join" className="button-like secondary">
-                  商户去入驻
+                <button type="button" onClick={() => setCartOpen(true)}>
+                  打开购物车
+                </button>
+                <Link to="/orders" className="button-like secondary">
+                  查看订单
                 </Link>
               </div>
               {feedback ? <div className={`inline-feedback ${feedback.type}`}>{feedback.message}</div> : null}
@@ -221,19 +368,19 @@ function App() {
             <div className="home-hero-stats">
               <article className="hero-card">
                 <h2>{products.length}</h2>
-                <p>在线商品</p>
+                <p>精选商品</p>
               </article>
               <article className="hero-card">
                 <h2>{Math.max(0, categoryOptions.length - 1)}</h2>
                 <p>覆盖分类</p>
               </article>
               <article className="hero-card">
-                <h2>{currentUser ? "已登录" : "游客"}</h2>
-                <p>当前状态</p>
+                <h2>{currentUser ? cartData.totalItems || 0 : "-"}</h2>
+                <p>购物车件数</p>
               </article>
               <article className="hero-card">
-                <h2>{currentUser?.role === "MERCHANT" ? "商户" : "用户"}</h2>
-                <p>账号角色</p>
+                <h2>{currentUser ? orders.length : "-"}</h2>
+                <p>订单数</p>
               </article>
             </div>
           </section>
@@ -241,8 +388,8 @@ function App() {
           <section className="product-section">
             <div className="section-head">
               <div>
-                <h2>商品目录</h2>
-                <p>商城首页仅负责展示商品。</p>
+                <h2>精选商品</h2>
+                <p>数据来源：`/api/products/featured`</p>
               </div>
               <div className="search-wrap">
                 <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
@@ -287,6 +434,13 @@ function App() {
                       <strong>{formatPrice(product.price)}</strong>
                       <span>评分 {product.rating}</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(product.id)}
+                      disabled={product.stockQuantity <= 0}
+                    >
+                      {product.stockQuantity <= 0 ? "暂时缺货" : "加入购物车"}
+                    </button>
                   </article>
                 ))}
               </div>
@@ -294,6 +448,62 @@ function App() {
           </section>
         </main>
       </>
+    );
+  }
+
+  function OrdersPage() {
+    if (!currentUser?.id) {
+      return <Navigate to="/login" replace />;
+    }
+
+    return (
+      <main className="orders-page">
+        <section className="product-section">
+          <div className="section-head">
+            <div>
+              <h2>我的订单</h2>
+              <p>订单查询独立路由页面</p>
+            </div>
+            <button type="button" className="section-link-button" onClick={() => void loadOrders(currentUser.id)}>
+              刷新订单
+            </button>
+          </div>
+
+          {ordersLoading ? <div className="status-panel">订单加载中...</div> : null}
+          {!ordersLoading && ordersError ? <div className="status-panel error">{ordersError}</div> : null}
+          {!ordersLoading && !ordersError && !orders.length ? <div className="status-panel">暂无订单</div> : null}
+
+          {!ordersLoading && !ordersError && orders.length ? (
+            <div className="orders-list">
+              {orders.map((order) => (
+                <article key={order.orderId} className="order-card">
+                  <div className="order-card-head">
+                    <div>
+                      <h3>{order.orderNo}</h3>
+                      <p>{formatDateTime(order.createdAt)}</p>
+                    </div>
+                    <strong>{ORDER_STATUS_LABELS[order.status] || order.status}</strong>
+                  </div>
+                  <div className="order-card-summary">
+                    <span>{order.totalItems} 件商品</span>
+                    <strong>{formatPrice(order.totalAmount)}</strong>
+                  </div>
+                  <div className="order-card-items">
+                    {(order.items || []).map((item) => (
+                      <div key={`${order.orderId}-${item.productId}`} className="order-result-row">
+                        <span>
+                          {item.productName} x {item.quantity}
+                        </span>
+                        <strong>{formatPrice(item.lineTotal)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      </main>
     );
   }
 
@@ -384,6 +594,7 @@ function App() {
       </main>
     );
   }
+
   function MerchantJoinPage() {
     return (
       <main className="auth-page-wrap">
@@ -439,21 +650,109 @@ function App() {
     <div className="page-shell">
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/orders" element={<OrdersPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/merchant/join" element={<MerchantJoinPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {currentUser ? (
+        <>
+          <button
+            type="button"
+            className={`cart-tab ${cartOpen ? "open" : ""}`}
+            onClick={() => setCartOpen((prev) => !prev)}
+          >
+            购物车 {cartData.totalItems || 0}
+          </button>
+
+          <aside className={`cart-drawer ${cartOpen ? "open" : ""}`}>
+            <div className="cart-drawer-head">
+              <h3>购物车</h3>
+              <button type="button" className="cart-drawer-close" onClick={() => setCartOpen(false)}>
+                关闭
+              </button>
+            </div>
+
+            {cartError ? <div className="checkout-feedback error">{cartError}</div> : null}
+
+            {cartLoading ? <div className="status-panel">购物车加载中...</div> : null}
+
+            {!cartLoading ? (
+              <>
+                <div className="cart-list">
+                  {cartData.items?.length ? (
+                    cartData.items.map((item) => (
+                      <article key={item.id} className="cart-item">
+                        <div>
+                          <h3>{item.productName}</h3>
+                          <p>{item.category}</p>
+                        </div>
+                        <div className="cart-item-meta">
+                          <strong>{formatPrice(item.lineTotal)}</strong>
+                          <div className="quantity-control">
+                            <button
+                              type="button"
+                              disabled={cartBusyItemId === item.id || item.quantity <= 1}
+                              onClick={() => handleUpdateCartQuantity(item.id, item.quantity - 1)}
+                            >
+                              -
+                            </button>
+                            <span>{item.quantity}</span>
+                            <button
+                              type="button"
+                              disabled={cartBusyItemId === item.id}
+                              onClick={() => handleUpdateCartQuantity(item.id, item.quantity + 1)}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            className="cart-remove-button"
+                            disabled={cartBusyItemId === item.id}
+                            onClick={() => handleRemoveCartItem(item.id)}
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="status-panel">购物车为空</div>
+                  )}
+                </div>
+
+                <div className="cart-summary">
+                  <span>共 {cartData.totalItems || 0} 件商品</span>
+                  <strong>{formatPrice(cartData.totalAmount)}</strong>
+                </div>
+
+                <div className="checkout-actions">
+                  <button
+                    type="button"
+                    className="checkout-button secondary-check"
+                    onClick={() => void loadCart(currentUser.id)}
+                    disabled={cartSubmittingOrder}
+                  >
+                    刷新
+                  </button>
+                  <button
+                    type="button"
+                    className="checkout-button"
+                    onClick={handleCreateOrder}
+                    disabled={cartSubmittingOrder || !cartData.items?.length}
+                  >
+                    {cartSubmittingOrder ? "提交中..." : "创建订单"}
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </aside>
+        </>
+      ) : null}
     </div>
   );
 }
 
 export default App;
-
-
-
-
-
-
-
-
-
