@@ -14,6 +14,7 @@ import { useAuthFormsModule } from "./useAuthFormsModule";
 import { useCartModule } from "./useCartModule";
 import { useCatalogModule } from "./useCatalogModule";
 import { useMerchantModule } from "./useMerchantModule";
+import { useMerchantOrderModule } from "./useMerchantOrderModule";
 import { useOrderModule } from "./useOrderModule";
 import { buildAppRoutes } from "../router/buildRoutes";
 import { APP_ROUTES } from "../router/paths";
@@ -29,6 +30,7 @@ export function useAppController() {
   const cart = useCartModule();
   const order = useOrderModule();
   const merchant = useMerchantModule();
+  const merchantOrder = useMerchantOrderModule();
   const authForms = useAuthFormsModule();
 
   useEffect(() => {
@@ -36,14 +38,16 @@ export function useAppController() {
     const mode = params.get("mode");
 
     if (location.pathname === APP_ROUTES.LOGIN) {
-      authForms.setLoginMode(mode === "register" ? "register" : "login");
-      authForms.resetLoginForm();
+      const loginMode = mode === "register" ? "register" : "login";
+      authForms.setLoginMode(loginMode);
+      authForms.resetLoginForm({ useRemembered: loginMode === "login" });
       authForms.setLoginFeedback(null);
     }
 
     if (location.pathname === APP_ROUTES.MERCHANT_JOIN) {
-      authForms.setMerchantMode(mode === "login" ? "login" : "register");
-      authForms.resetMerchantForm();
+      const merchantMode = mode === "login" ? "login" : "register";
+      authForms.setMerchantMode(merchantMode);
+      authForms.resetMerchantForm({ useRemembered: merchantMode === "login" });
       authForms.setMerchantFeedback(null);
     }
   }, [
@@ -58,6 +62,27 @@ export function useAppController() {
   ]);
 
   useEffect(() => {
+    if (!location.hash) {
+      return;
+    }
+
+    const targetId = decodeURIComponent(location.hash.slice(1));
+    if (!targetId) {
+      return;
+    }
+
+    // Wait for routed content to render, then scroll to anchor target.
+    const timer = setTimeout(() => {
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [location.hash, location.pathname]);
+
+  useEffect(() => {
     if (!currentUser?.id) {
       cart.resetCartState();
       order.setOrders([]);
@@ -69,7 +94,7 @@ export function useAppController() {
       cart.resetCartState();
       order.setOrders([]);
       order.setOrdersError("");
-      void merchant.loadDashboard(currentUser.id);
+      void Promise.all([merchant.loadDashboard(currentUser.id), merchantOrder.loadMerchantOrders(currentUser.id)]);
       return;
     }
 
@@ -82,7 +107,8 @@ export function useAppController() {
     order.loadOrders,
     order.setOrders,
     order.setOrdersError,
-    merchant.loadDashboard
+    merchant.loadDashboard,
+    merchantOrder.loadMerchantOrders
   ]);
 
   const toggleCart = useCallback(() => {
@@ -234,7 +260,7 @@ export function useAppController() {
     try {
       await merchant.createProduct(currentUser.id);
       setFeedback({ type: "success", message: "商品创建成功。" });
-      navigate(APP_ROUTES.MERCHANT_DASHBOARD);
+      navigate(APP_ROUTES.MERCHANT_PRODUCTS);
     } catch {
       // merchant module already set error
     }
@@ -292,6 +318,59 @@ export function useAppController() {
     [merchant.stockInProduct, currentUser?.id, currentUser?.role]
   );
 
+  const handleDeleteMerchantProduct = useCallback(
+    async (productId) => {
+      if (currentUser?.role !== "MERCHANT") {
+        return;
+      }
+
+      try {
+        await merchant.deleteProduct(currentUser.id, productId);
+        setFeedback({ type: "success", message: "商品删除成功。" });
+      } catch {
+        // merchant module already set error
+      }
+    },
+    [merchant.deleteProduct, currentUser?.id, currentUser?.role]
+  );
+
+  const handleRefreshMerchantOrders = useCallback(() => {
+    if (currentUser?.role !== "MERCHANT") {
+      return;
+    }
+    void merchantOrder.loadMerchantOrders(currentUser.id);
+  }, [merchantOrder.loadMerchantOrders, currentUser?.id, currentUser?.role]);
+
+  const handleShipMerchantOrder = useCallback(
+    async (orderId) => {
+      if (currentUser?.role !== "MERCHANT") {
+        return;
+      }
+      try {
+        await merchantOrder.updateStatus(currentUser.id, orderId, "SHIPPED");
+        setFeedback({ type: "success", message: "订单已标记为已发货。" });
+      } catch {
+        // merchant order module already set error
+      }
+    },
+    [merchantOrder.updateStatus, currentUser?.id, currentUser?.role]
+  );
+
+  const handleCompleteMerchantOrder = useCallback(
+    async (orderId) => {
+      if (currentUser?.role !== "MERCHANT") {
+        return;
+      }
+      try {
+        await merchantOrder.updateStatus(currentUser.id, orderId, "COMPLETED");
+        setFeedback({ type: "success", message: "订单已标记为已完成。" });
+      } catch {
+        // merchant order module already set error
+      }
+    },
+    [merchantOrder.updateStatus, currentUser?.id, currentUser?.role]
+  );
+
   const handleLoginModeChange = useCallback(
     (mode) => {
       authForms.setLoginMode(mode);
@@ -322,6 +401,7 @@ export function useAppController() {
         const email = authForms.loginForm.email.trim();
         const password = authForms.loginForm.password;
         const fullName = authForms.loginForm.fullName.trim();
+        const rememberPassword = Boolean(authForms.loginForm.rememberPassword);
 
         if (!email || !password || (authForms.loginMode === "register" && !fullName)) {
           throw new Error("请完整填写表单信息。");
@@ -336,9 +416,13 @@ export function useAppController() {
               })
             : await login({ email, password });
 
+        if (authForms.loginMode === "login") {
+          authForms.persistRememberedLogin(email, password, rememberPassword);
+        }
+
         storeUser(user);
         setCurrentUser(user);
-        authForms.resetLoginForm();
+        authForms.resetLoginForm({ useRemembered: true });
         setFeedback({
           type: "success",
           message: authForms.loginMode === "register" ? "注册成功，已自动登录。" : "登录成功。"
@@ -361,6 +445,7 @@ export function useAppController() {
       authForms.setLoginFeedback,
       authForms.loginForm,
       authForms.loginMode,
+      authForms.persistRememberedLogin,
       authForms.resetLoginForm,
       navigate
     ]
@@ -380,6 +465,7 @@ export function useAppController() {
         const fullName = authForms.merchantForm.fullName.trim();
         const email = authForms.merchantForm.email.trim();
         const password = authForms.merchantForm.password;
+        const rememberPassword = Boolean(authForms.merchantForm.rememberPassword);
 
         if (!email || !password || (authForms.merchantMode === "register" && !fullName)) {
           throw new Error("请完整填写表单信息。");
@@ -398,9 +484,13 @@ export function useAppController() {
           throw new Error("当前账号不是商户账号。");
         }
 
+        if (authForms.merchantMode === "login") {
+          authForms.persistRememberedMerchantLogin(email, password, rememberPassword);
+        }
+
         storeUser(user);
         setCurrentUser(user);
-        authForms.resetMerchantForm();
+        authForms.resetMerchantForm({ useRemembered: authForms.merchantMode === "login" });
         setFeedback({
           type: "success",
           message: authForms.merchantMode === "login" ? "商户登录成功。" : "入驻成功，已自动登录商户账号。"
@@ -418,6 +508,7 @@ export function useAppController() {
       authForms.setMerchantFeedback,
       authForms.merchantForm,
       authForms.merchantMode,
+      authForms.persistRememberedMerchantLogin,
       authForms.resetMerchantForm,
       navigate
     ]
@@ -437,6 +528,10 @@ export function useAppController() {
       handleUpdateMerchantProduct,
       handleUploadMerchantProductImage,
       handleStockInMerchantProduct,
+      handleDeleteMerchantProduct,
+      handleRefreshMerchantOrders,
+      handleShipMerchantOrder,
+      handleCompleteMerchantOrder,
       handleLoginModeChange,
       handleMerchantModeChange,
       handleLoginSubmit,
@@ -455,6 +550,10 @@ export function useAppController() {
       handleUpdateMerchantProduct,
       handleUploadMerchantProductImage,
       handleStockInMerchantProduct,
+      handleDeleteMerchantProduct,
+      handleRefreshMerchantOrders,
+      handleShipMerchantOrder,
+      handleCompleteMerchantOrder,
       handleLoginModeChange,
       handleMerchantModeChange,
       handleLoginSubmit,
@@ -470,6 +569,7 @@ export function useAppController() {
       cart,
       order,
       merchant,
+      merchantOrder,
       authForms,
       handlers
     })
@@ -513,3 +613,6 @@ export function useAppController() {
     cartDrawerProps
   };
 }
+
+
+

@@ -14,8 +14,19 @@ export async function fetchFeaturedProducts() {
   return response.json();
 }
 
-export async function fetchCatalogProducts() {
-  const response = await fetch(buildApiUrl("/api/products/catalog"));
+export async function fetchCatalogProducts(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+    query.set(key, String(value));
+  });
+
+  const url = query.toString()
+    ? buildApiUrl(`/api/products/catalog?${query.toString()}`)
+    : buildApiUrl("/api/products/catalog");
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error("商品目录加载失败。");

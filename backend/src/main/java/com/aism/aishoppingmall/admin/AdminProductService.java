@@ -17,13 +17,12 @@ import com.aism.aishoppingmall.user.UserMapper;
 import com.aism.aishoppingmall.user.UserRole;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 @Service
 public class AdminProductService {
@@ -81,7 +80,7 @@ public class AdminProductService {
     public AdminProductVO createProduct(AdminProductDTO request) {
         User merchant = loadMerchant(request.getMerchantId());
         if (productMapper.countBySlug(request.getSlug()) > 0) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "商品标识已存在。");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Product slug already exists.");
         }
 
         Category category = loadCategory(request.getCategorySlug());
@@ -110,12 +109,12 @@ public class AdminProductService {
         Product product = findProductById(productId);
 
         if (product.getMerchant() == null || !product.getMerchant().getId().equals(merchant.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权修改该商品。");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to update this product.");
         }
 
         Product existingBySlug = productMapper.findBySlug(request.getSlug());
         if (existingBySlug != null && !existingBySlug.getId().equals(product.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "商品标识已存在。");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Product slug already exists.");
         }
 
         product.setName(request.getName().trim());
@@ -140,7 +139,7 @@ public class AdminProductService {
         Product product = findProductById(productId);
 
         if (product.getMerchant() == null || !product.getMerchant().getId().equals(merchant.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权操作该商品库存。");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to stock in this product.");
         }
 
         product.setStockQuantity(product.getStockQuantity() + request.getQuantity());
@@ -150,17 +149,29 @@ public class AdminProductService {
     public AdminUploadVO uploadProductImage(Long merchantId, MultipartFile file) {
         loadMerchant(merchantId);
         if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先选择图片文件。");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please select an image file first.");
         }
 
         String imageUrl = imageStorageService.storeUploadedImage(file, "merchant-" + merchantId);
         return new AdminUploadVO(imageUrl);
     }
 
+    @Transactional
+    public void deleteProduct(Long productId, Long merchantId) {
+        User merchant = loadMerchant(merchantId);
+        Product product = findProductById(productId);
+
+        if (product.getMerchant() == null || !product.getMerchant().getId().equals(merchant.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to delete this product.");
+        }
+
+        productMapper.deleteById(product.getId());
+    }
+
     private Product findProductById(Long productId) {
         Product product = productMapper.selectById(productId);
         if (product == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "商品不存在。");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found.");
         }
         return hydrateProduct(product);
     }
@@ -194,10 +205,10 @@ public class AdminProductService {
     private User loadMerchant(Long merchantId) {
         User merchant = userMapper.selectById(merchantId);
         if (merchant == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "商户不存在。");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Merchant not found.");
         }
         if (merchant.getRole() != UserRole.MERCHANT) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "当前账号不是商户账号。");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Current account is not a merchant account.");
         }
         return merchant;
     }
@@ -205,7 +216,7 @@ public class AdminProductService {
     private Category loadCategory(String categorySlug) {
         Category category = categoryMapper.findBySlug(categorySlug);
         if (category == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "商品分类不存在。");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found.");
         }
         return category;
     }

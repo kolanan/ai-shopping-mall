@@ -3,12 +3,11 @@ package com.aism.aishoppingmall.auth;
 import com.aism.aishoppingmall.user.User;
 import com.aism.aishoppingmall.user.UserMapper;
 import com.aism.aishoppingmall.user.UserRole;
+import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.Locale;
 
 @Service
 public class AuthService {
@@ -49,6 +48,9 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         User user = authenticateUser(request);
+        if (user.getRole() != UserRole.USER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "商户账号请使用商户登录入口。");
+        }
         return new AuthResponse("登录成功。", AuthUserResponse.from(user));
     }
 

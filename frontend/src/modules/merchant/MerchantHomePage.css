@@ -1,0 +1,73 @@
+﻿.merchant-home-page {
+  width: min(1200px, 92vw);
+  margin: 0 auto;
+  padding: 2.4rem 0 3.2rem;
+}
+
+.merchant-home-hero {
+  border: 1px solid #e2e8f0;
+  background:
+    radial-gradient(900px 220px at 90% -20%, rgba(245, 158, 11, 0.2), transparent 55%),
+    radial-gradient(700px 180px at 5% -10%, rgba(20, 184, 166, 0.14), transparent 55%),
+    #ffffff;
+}
+
+.merchant-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.merchant-home-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.merchant-home-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.9rem;
+  background: #f8fafc;
+  padding: 0.85rem 0.95rem;
+}
+
+.merchant-home-card span {
+  display: block;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.merchant-home-card strong {
+  display: block;
+  margin-top: 0.32rem;
+  color: #0f172a;
+  font-size: 1.18rem;
+}
+
+.merchant-home-card.warn {
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
+.merchant-home-card.warn strong {
+  color: #c2410c;
+}
+
+.merchant-home-card small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #9a3412;
+  font-size: 0.76rem;
+}
+
+@media (max-width: 900px) {
+  .merchant-home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .merchant-home-grid {
+    grid-template-columns: 1fr;
+  }
+}

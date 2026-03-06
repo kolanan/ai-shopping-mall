@@ -6,10 +6,15 @@ import com.aism.aishoppingmall.cart.CartItemMapper;
 import com.aism.aishoppingmall.cart.CartService;
 import com.aism.aishoppingmall.category.Category;
 import com.aism.aishoppingmall.category.CategoryMapper;
+import com.aism.aishoppingmall.order.dto.MerchantUpdateOrderStatusDTO;
+import com.aism.aishoppingmall.order.vo.MerchantOrderItemVO;
+import com.aism.aishoppingmall.order.vo.MerchantOrderStatsVO;
+import com.aism.aishoppingmall.order.vo.MerchantOrderVO;
 import com.aism.aishoppingmall.product.Product;
 import com.aism.aishoppingmall.product.ProductMapper;
 import com.aism.aishoppingmall.user.User;
 import com.aism.aishoppingmall.user.UserMapper;
+import com.aism.aishoppingmall.user.UserRole;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -162,6 +168,54 @@ public class OrderService {
         return toOrderResponse(order);
     }
 
+    @Transactional(readOnly = true)
+    public MerchantOrderStatsVO getMerchantOrderStats(Long merchantId) {
+        loadMerchant(merchantId);
+        List<MerchantOrderVO> orders = buildMerchantOrderList(merchantId);
+        int soldItems = orders.stream().mapToInt(MerchantOrderVO::getSoldItems).sum();
+        int pendingShipmentCount = (int) orders.stream()
+                .filter(order -> OrderStatus.PAID.name().equals(order.getStatus()))
+                .count();
+        BigDecimal soldAmount = orders.stream()
+                .map(MerchantOrderVO::getSoldAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new MerchantOrderStatsVO(soldItems, orders.size(), pendingShipmentCount, soldAmount);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MerchantOrderVO> getMerchantOrders(Long merchantId) {
+        loadMerchant(merchantId);
+        return buildMerchantOrderList(merchantId);
+    }
+
+    @Transactional
+    public MerchantOrderVO updateMerchantOrderStatus(Long orderId, MerchantUpdateOrderStatusDTO request) {
+        loadMerchant(request.getMerchantId());
+        Order order = orderMapper.selectById(orderId);
+        if (order == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
+        }
+
+        List<OrderItem> merchantItems = getMerchantOrderItems(orderId, request.getMerchantId());
+        if (merchantItems.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to operate this order");
+        }
+
+        OrderStatus targetStatus;
+        try {
+            targetStatus = OrderStatus.valueOf(request.getStatus().trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target status");
+        }
+
+        validateMerchantTransition(order.getStatus(), targetStatus);
+        order.setStatus(targetStatus);
+        saveOrder(order);
+
+        return toMerchantOrderVO(order, merchantItems);
+    }
+
     private void restoreInventory(Long orderId) {
         List<OrderItem> orderItems = orderItemMapper.findAllByOrderIdOrderByIdAsc(orderId);
         for (OrderItem orderItem : orderItems) {
@@ -191,6 +245,22 @@ public class OrderService {
         }
     }
 
+    private void validateMerchantTransition(OrderStatus currentStatus, OrderStatus targetStatus) {
+        if (currentStatus == targetStatus) {
+            return;
+        }
+
+        boolean valid = switch (currentStatus) {
+            case PAID -> targetStatus == OrderStatus.SHIPPED;
+            case SHIPPED -> targetStatus == OrderStatus.COMPLETED;
+            case CREATED, COMPLETED, CANCELLED -> false;
+        };
+
+        if (!valid) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Merchant order status transition is not allowed");
+        }
+    }
+
     private OrderResponse toOrderResponse(Order order) {
         return new OrderResponse(
                 order.getId(),
@@ -210,12 +280,66 @@ public class OrderService {
         return "ORD" + ORDER_NO_TIME.format(LocalDateTime.now()) + String.format("%04d", userId % 10000);
     }
 
+    private User loadMerchant(Long merchantId) {
+        User merchant = userMapper.selectById(merchantId);
+        if (merchant == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Merchant not found");
+        }
+        if (merchant.getRole() != UserRole.MERCHANT) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Current account is not merchant");
+        }
+        return merchant;
+    }
+
     private User loadUser(Long userId) {
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         return user;
+    }
+
+    private List<MerchantOrderVO> buildMerchantOrderList(Long merchantId) {
+        List<Order> orders = orderMapper.findAllOrderByCreatedAtDescIdDesc();
+        List<MerchantOrderVO> result = new ArrayList<>();
+
+        for (Order order : orders) {
+            List<OrderItem> merchantItems = getMerchantOrderItems(order.getId(), merchantId);
+            if (merchantItems.isEmpty()) {
+                continue;
+            }
+            result.add(toMerchantOrderVO(order, merchantItems));
+        }
+        return result;
+    }
+
+    private MerchantOrderVO toMerchantOrderVO(Order order, List<OrderItem> merchantItems) {
+        User buyer = userMapper.selectById(order.getUserId());
+        int soldItems = merchantItems.stream().mapToInt(OrderItem::getQuantity).sum();
+        BigDecimal soldAmount = merchantItems.stream()
+                .map(OrderItem::getLineTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        MerchantOrderVO vo = new MerchantOrderVO();
+        vo.setOrderId(order.getId());
+        vo.setOrderNo(order.getOrderNo());
+        vo.setBuyerId(order.getUserId());
+        vo.setBuyerName(buyer == null ? "未知用户" : buyer.getFullName());
+        vo.setStatus(order.getStatus().name());
+        vo.setCreatedAt(order.getCreatedAt());
+        vo.setSoldItems(soldItems);
+        vo.setSoldAmount(soldAmount);
+        vo.setItems(merchantItems.stream().map(MerchantOrderItemVO::from).toList());
+        return vo;
+    }
+
+    private List<OrderItem> getMerchantOrderItems(Long orderId, Long merchantId) {
+        return orderItemMapper.findAllByOrderIdOrderByIdAsc(orderId).stream()
+                .filter(item -> {
+                    Product product = productMapper.selectById(item.getProductId());
+                    return product != null && merchantId.equals(product.getMerchantId());
+                })
+                .toList();
     }
 
     private List<CartItem> findCartItemsByUserId(Long userId) {

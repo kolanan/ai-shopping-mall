@@ -4,9 +4,11 @@ import MerchantJoinPage from "../modules/auth/MerchantJoinPage";
 import CatalogPage from "../modules/catalog/CatalogPage";
 import ProductDetailPage from "../modules/catalog/ProductDetailPage";
 import OrdersPage from "../modules/order/OrdersPage";
+import MerchantHomePage from "../modules/merchant/MerchantHomePage";
 import MerchantDashboardPage from "../modules/merchant/MerchantDashboardPage";
 import MerchantProductCreatePage from "../modules/merchant/MerchantProductCreatePage";
 import MerchantProductEditPage from "../modules/merchant/MerchantProductEditPage";
+import MerchantOrdersPage from "../modules/merchant/MerchantOrdersPage";
 import { APP_ROUTES } from "./paths";
 
 export function buildAppRoutes({
@@ -16,6 +18,7 @@ export function buildAppRoutes({
   cart,
   order,
   merchant,
+  merchantOrder,
   authForms,
   handlers
 }) {
@@ -38,6 +41,15 @@ export function buildAppRoutes({
           onCategoryChange={catalog.setCategoryFilter}
           searchKeyword={catalog.searchKeyword}
           onSearchChange={catalog.setSearchKeyword}
+          minPrice={catalog.minPrice}
+          maxPrice={catalog.maxPrice}
+          inStockOnly={catalog.inStockOnly}
+          sort={catalog.sort}
+          onMinPriceChange={catalog.setMinPrice}
+          onMaxPriceChange={catalog.setMaxPrice}
+          onInStockOnlyChange={catalog.setInStockOnly}
+          onSortChange={catalog.setSort}
+          onReload={catalog.loadProducts}
           onAddToCart={handlers.handleAddToCart}
         />
       )
@@ -77,13 +89,40 @@ export function buildAppRoutes({
     {
       path: APP_ROUTES.MERCHANT_DASHBOARD,
       element: (
+        <MerchantHomePage
+          currentUser={currentUser}
+          onLogout={handlers.handleLogout}
+          merchant={merchant}
+          merchantOrder={merchantOrder}
+          onRefreshProducts={handlers.handleRefreshMerchantProducts}
+          onRefreshOrders={handlers.handleRefreshMerchantOrders}
+        />
+      )
+    },
+    {
+      path: APP_ROUTES.MERCHANT_PRODUCTS,
+      element: (
         <MerchantDashboardPage
           currentUser={currentUser}
           onLogout={handlers.handleLogout}
           merchant={merchant}
           onRefresh={handlers.handleRefreshMerchantProducts}
           onStockInProduct={handlers.handleStockInMerchantProduct}
+          onDeleteProduct={handlers.handleDeleteMerchantProduct}
           onChangePage={handlers.handleChangeMerchantProductPage}
+        />
+      )
+    },
+    {
+      path: APP_ROUTES.MERCHANT_ORDERS,
+      element: (
+        <MerchantOrdersPage
+          currentUser={currentUser}
+          onLogout={handlers.handleLogout}
+          merchantOrder={merchantOrder}
+          onRefresh={handlers.handleRefreshMerchantOrders}
+          onShipOrder={handlers.handleShipMerchantOrder}
+          onCompleteOrder={handlers.handleCompleteMerchantOrder}
         />
       )
     },

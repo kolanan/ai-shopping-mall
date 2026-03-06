@@ -3,13 +3,22 @@ import "./SiteHeader.css";
 import { Link } from "react-router-dom";
 import { APP_ROUTES } from "../../router/paths";
 
-const SUBNAV_ITEMS = ["首页推荐", "热销好物", "品牌商户", "极速履约", "售后保障"];
+const SUBNAV_ITEMS = [
+  { label: "首页推荐", to: `${APP_ROUTES.CATALOG}#home-recommend` },
+  { label: "热销好物", to: `${APP_ROUTES.CATALOG}#hot-products` },
+  { label: "品牌商户" },
+  { label: "极速履约" },
+  { label: "售后保障" }
+];
 
 function SiteHeader({ currentUser, cartTotalItems, onToggleCart, onLogout }) {
+  const isMerchant = currentUser?.role === "MERCHANT";
+  const brandTarget = isMerchant ? APP_ROUTES.MERCHANT_DASHBOARD : APP_ROUTES.CATALOG;
+
   return (
     <>
       <header className="topbar">
-        <Link to={APP_ROUTES.CATALOG} className="brand-block brand-button">
+        <Link to={brandTarget} className="brand-block brand-button">
           <div className="brand-mark">商</div>
           <div>
             <div className="brand-name">智选商城</div>
@@ -22,10 +31,10 @@ function SiteHeader({ currentUser, cartTotalItems, onToggleCart, onLogout }) {
             <>
               <div className="account-pill">
                 {currentUser.fullName}
-                {currentUser.role === "MERCHANT" ? " · 商户" : " · 用户"}
+                {isMerchant ? " · 商户" : " · 用户"}
               </div>
 
-              {currentUser.role === "MERCHANT" ? (
+              {isMerchant ? (
                 <Link to={APP_ROUTES.MERCHANT_DASHBOARD} className="nav-button">
                   商户管理
                 </Link>
@@ -60,11 +69,19 @@ function SiteHeader({ currentUser, cartTotalItems, onToggleCart, onLogout }) {
         </div>
       </header>
 
-      <div className="subnav">
-        {SUBNAV_ITEMS.map((item) => (
-          <span key={item}>{item}</span>
-        ))}
-      </div>
+      {!isMerchant ? (
+        <div className="subnav">
+          {SUBNAV_ITEMS.map((item) =>
+            item.to ? (
+              <Link key={item.label} to={item.to} className="subnav-link">
+                {item.label}
+              </Link>
+            ) : (
+              <span key={item.label}>{item.label}</span>
+            )
+          )}
+        </div>
+      ) : null}
     </>
   );
 }

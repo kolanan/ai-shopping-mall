@@ -81,6 +81,28 @@
   background: #ffffff;
 }
 
+.auth-remember-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.62rem 0.75rem;
+  border: 1px solid #dbe4f0;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+}
+
+.auth-remember-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #0f766e;
+}
+
+.auth-remember-row span {
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .auth-form button {
   margin-top: 0.3rem;
   padding: 0.9rem 1.2rem;
@@ -204,4 +226,60 @@
   .auth-tabs {
     grid-template-columns: 1fr;
   }
+}
+
+.user-auth-theme.auth-login-wrap {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(245, 158, 11, 0.24), transparent 30%),
+    radial-gradient(circle at 90% 85%, rgba(249, 115, 22, 0.16), transparent 34%);
+}
+
+.user-auth-theme .auth-login-card {
+  border-color: #fed7aa;
+}
+
+.user-auth-theme .auth-login-aside {
+  background: linear-gradient(160deg, #9a3412 0%, #ea580c 100%);
+}
+
+.user-auth-theme .auth-tabs button.active {
+  background: #c2410c;
+  border-color: #c2410c;
+}
+
+.user-auth-theme .auth-form button {
+  background: #f59e0b;
+}
+
+.merchant-auth-theme.auth-login-wrap {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(15, 23, 42, 0.2), transparent 30%),
+    radial-gradient(circle at 90% 85%, rgba(20, 184, 166, 0.18), transparent 34%);
+}
+
+.merchant-auth-theme .auth-login-card {
+  border-color: #99f6e4;
+}
+
+.merchant-auth-theme .auth-login-aside {
+  background: linear-gradient(160deg, #0f172a 0%, #0f766e 100%);
+}
+
+.merchant-auth-theme .auth-tabs button.active {
+  background: #0f766e;
+  border-color: #0f766e;
+}
+
+.merchant-auth-theme .auth-form button {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.merchant-auth-theme .auth-login-main .auth-form input:focus {
+  outline-color: #0f766e;
+  border-color: #0f766e;
+}
+
+.merchant-auth-theme .auth-remember-row input[type="checkbox"] {
+  accent-color: #0f766e;
 }

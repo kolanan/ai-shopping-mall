@@ -1,6 +1,7 @@
 ﻿import { useCallback, useMemo, useState } from "react";
 import {
   createMerchantProduct,
+  deleteMerchantProduct,
   fetchAdminCategories,
   fetchMerchantProductPage,
   stockInMerchantProduct,
@@ -54,6 +55,7 @@ export function useMerchantModule() {
   const [updateSubmitting, setUpdateSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [stockingProductId, setStockingProductId] = useState(null);
+  const [deletingProductId, setDeletingProductId] = useState(null);
   const [productForm, setProductForm] = useState(createDefaultProductForm);
 
   const loadProductPage = useCallback(async (merchantId, page = 1) => {
@@ -292,6 +294,30 @@ export function useMerchantModule() {
     }
   }, []);
 
+  const deleteProduct = useCallback(
+    async (merchantId, productId) => {
+      if (!merchantId || !productId) {
+        throw new Error("商品信息缺失，请刷新后重试。");
+      }
+
+      setDeletingProductId(productId);
+      setError("");
+      try {
+        await deleteMerchantProduct(productId, merchantId);
+        const currentPage = productPage.page || 1;
+        const currentItems = productPage.items || [];
+        const targetPage = currentItems.length <= 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+        await loadProductPage(merchantId, targetPage);
+      } catch (deleteError) {
+        setError(deleteError.message);
+        throw deleteError;
+      } finally {
+        setDeletingProductId(null);
+      }
+    },
+    [loadProductPage, productPage.items, productPage.page]
+  );
+
   const categoryOptions = useMemo(() => categories || [], [categories]);
 
   return {
@@ -304,6 +330,7 @@ export function useMerchantModule() {
     updateSubmitting,
     imageUploading,
     stockingProductId,
+    deletingProductId,
     productForm,
     loadDashboard,
     refreshProducts,
@@ -312,6 +339,7 @@ export function useMerchantModule() {
     createProduct,
     updateProduct,
     stockInProduct,
-    uploadProductImage
+    uploadProductImage,
+    deleteProduct
   };
 }

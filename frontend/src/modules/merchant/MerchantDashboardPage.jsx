@@ -12,6 +12,7 @@ function MerchantDashboardPage({
   merchant,
   onRefresh,
   onStockInProduct,
+  onDeleteProduct,
   onChangePage
 }) {
   const [stockInQuantityMap, setStockInQuantityMap] = useState({});
@@ -53,6 +54,14 @@ function MerchantDashboardPage({
     }));
   }
 
+  async function handleDelete(productId, name) {
+    const confirmed = window.confirm(`确认删除商品「${name}」吗？此操作不可恢复。`);
+    if (!confirmed) {
+      return;
+    }
+    await onDeleteProduct(productId);
+  }
+
   const currentPage = merchant.productPage?.page || 1;
   const totalPages = merchant.productPage?.totalPages || 1;
   const total = merchant.productPage?.total || 0;
@@ -65,8 +74,8 @@ function MerchantDashboardPage({
         <section className="merchant-hero product-section merchant-hero-surface">
           <div>
             <p className="eyebrow">Merchant Console</p>
-            <h1>商户商品管理</h1>
-            <p>我的商品在上方展示，支持分页浏览、库存管理和快速编辑。</p>
+            <h1>商品管理</h1>
+            <p>按分页管理店铺商品，支持入库、编辑和删除。</p>
           </div>
           <div className="merchant-stats">
             <div className="merchant-stat-card">
@@ -89,9 +98,17 @@ function MerchantDashboardPage({
           <div className="section-head">
             <div>
               <h2>我的商品</h2>
-              <p>第 {currentPage} / {totalPages} 页，共 {total} 条。</p>
+              <p>
+                第 {currentPage} / {totalPages} 页，共 {total} 条。
+              </p>
             </div>
             <div className="merchant-actions">
+              <Link to={APP_ROUTES.MERCHANT_DASHBOARD} className="section-link-button">
+                首页统计
+              </Link>
+              <Link to={APP_ROUTES.MERCHANT_ORDERS} className="section-link-button">
+                订单管理
+              </Link>
               <Link to={APP_ROUTES.MERCHANT_PRODUCT_CREATE} className="button-like merchant-action-link">
                 新增商品
               </Link>
@@ -146,7 +163,10 @@ function MerchantDashboardPage({
                         <td>{product.badge || "-"}</td>
                         <td>{product.stockQuantity}</td>
                         <td>{product.displayOrder}</td>
-                        <td>{product.active ? "上架" : "下架"}{product.featured ? " / 精选" : ""}</td>
+                        <td>
+                          {product.active ? "上架" : "下架"}
+                          {product.featured ? " / 精选" : ""}
+                        </td>
                         <td>
                           <div className="stock-in-row">
                             <input
@@ -167,13 +187,23 @@ function MerchantDashboardPage({
                           </div>
                         </td>
                         <td>
-                          <Link
-                            to={APP_ROUTES.MERCHANT_PRODUCT_EDIT.replace(":productId", String(product.id))}
-                            state={{ product }}
-                            className="section-link-button"
-                          >
-                            编辑
-                          </Link>
+                          <div className="merchant-row-actions">
+                            <Link
+                              to={APP_ROUTES.MERCHANT_PRODUCT_EDIT.replace(":productId", String(product.id))}
+                              state={{ product }}
+                              className="section-link-button"
+                            >
+                              编辑
+                            </Link>
+                            <button
+                              type="button"
+                              className="merchant-delete-button"
+                              onClick={() => void handleDelete(product.id, product.name)}
+                              disabled={merchant.deletingProductId === product.id}
+                            >
+                              {merchant.deletingProductId === product.id ? "删除中..." : "删除"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -211,3 +241,4 @@ function MerchantDashboardPage({
 }
 
 export default MerchantDashboardPage;
+

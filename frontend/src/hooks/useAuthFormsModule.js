@@ -1,23 +1,74 @@
 ﻿import { useCallback, useState } from "react";
 
+const REMEMBER_LOGIN_KEY = "aism.rememberLogin";
+const REMEMBER_MERCHANT_LOGIN_KEY = "aism.rememberMerchantLogin";
+
 export const DEFAULT_AUTH_FORM = {
   fullName: "",
   email: "",
-  password: ""
+  password: "",
+  rememberPassword: false
 };
 
 function createEmptyAuthForm() {
   return { ...DEFAULT_AUTH_FORM };
 }
 
+function createRememberedForm(rememberKey) {
+  const form = createEmptyAuthForm();
+  const raw = window.localStorage.getItem(rememberKey);
+  if (!raw) {
+    return form;
+  }
+
+  try {
+    const data = JSON.parse(raw);
+    if (!data?.email || !data?.password) {
+      return form;
+    }
+    return {
+      ...form,
+      email: String(data.email),
+      password: String(data.password),
+      rememberPassword: true
+    };
+  } catch {
+    window.localStorage.removeItem(rememberKey);
+    return form;
+  }
+}
+
+function createInitialLoginForm() {
+  return createRememberedForm(REMEMBER_LOGIN_KEY);
+}
+
+function createInitialMerchantForm() {
+  return createRememberedForm(REMEMBER_MERCHANT_LOGIN_KEY);
+}
+
+function persistRememberedForm(rememberKey, email, password, rememberPassword) {
+  if (!rememberPassword) {
+    window.localStorage.removeItem(rememberKey);
+    return;
+  }
+
+  window.localStorage.setItem(
+    rememberKey,
+    JSON.stringify({
+      email: email || "",
+      password: password || ""
+    })
+  );
+}
+
 export function useAuthFormsModule() {
   const [loginMode, setLoginMode] = useState("login");
-  const [loginForm, setLoginForm] = useState(createEmptyAuthForm);
+  const [loginForm, setLoginForm] = useState(createInitialLoginForm);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginFeedback, setLoginFeedback] = useState(null);
 
   const [merchantMode, setMerchantMode] = useState("register");
-  const [merchantForm, setMerchantForm] = useState(createEmptyAuthForm);
+  const [merchantForm, setMerchantForm] = useState(createInitialMerchantForm);
   const [merchantSubmitting, setMerchantSubmitting] = useState(false);
   const [merchantFeedback, setMerchantFeedback] = useState(null);
 
@@ -29,12 +80,28 @@ export function useAuthFormsModule() {
     setMerchantForm((current) => ({ ...current, [field]: value }));
   }, []);
 
-  const resetLoginForm = useCallback(() => {
+  const resetLoginForm = useCallback((options = {}) => {
+    if (options.useRemembered !== false) {
+      setLoginForm(createInitialLoginForm());
+      return;
+    }
     setLoginForm(createEmptyAuthForm());
   }, []);
 
-  const resetMerchantForm = useCallback(() => {
+  const resetMerchantForm = useCallback((options = {}) => {
+    if (options.useRemembered) {
+      setMerchantForm(createInitialMerchantForm());
+      return;
+    }
     setMerchantForm(createEmptyAuthForm());
+  }, []);
+
+  const persistRememberedLogin = useCallback((email, password, rememberPassword) => {
+    persistRememberedForm(REMEMBER_LOGIN_KEY, email, password, rememberPassword);
+  }, []);
+
+  const persistRememberedMerchantLogin = useCallback((email, password, rememberPassword) => {
+    persistRememberedForm(REMEMBER_MERCHANT_LOGIN_KEY, email, password, rememberPassword);
   }, []);
 
   return {
@@ -44,6 +111,7 @@ export function useAuthFormsModule() {
     setLoginForm,
     updateLoginField,
     resetLoginForm,
+    persistRememberedLogin,
     loginSubmitting,
     setLoginSubmitting,
     loginFeedback,
@@ -54,6 +122,7 @@ export function useAuthFormsModule() {
     setMerchantForm,
     updateMerchantField,
     resetMerchantForm,
+    persistRememberedMerchantLogin,
     merchantSubmitting,
     setMerchantSubmitting,
     merchantFeedback,

@@ -1,5 +1,5 @@
 ﻿import "./CatalogPage.css";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { APP_ROUTES } from "../../router/paths";
 import SiteHeader from "../../components/layout/SiteHeader";
 import SiteFooter from "../../components/layout/SiteFooter";
@@ -24,6 +24,15 @@ const HERO_CARDS = [
   }
 ];
 
+const SORT_OPTIONS = [
+  { value: "featured_desc", label: "推荐优先" },
+  { value: "price_asc", label: "价格从低到高" },
+  { value: "price_desc", label: "价格从高到低" },
+  { value: "rating_desc", label: "评分从高到低" },
+  { value: "newest_desc", label: "最新上架" },
+  { value: "stock_desc", label: "库存优先" }
+];
+
 function CatalogPage({
   currentUser,
   cartTotalItems,
@@ -39,8 +48,21 @@ function CatalogPage({
   onCategoryChange,
   searchKeyword,
   onSearchChange,
+  minPrice,
+  maxPrice,
+  inStockOnly,
+  sort,
+  onMinPriceChange,
+  onMaxPriceChange,
+  onInStockOnlyChange,
+  onSortChange,
+  onReload,
   onAddToCart
 }) {
+  if (currentUser?.role === "MERCHANT") {
+    return <Navigate to={APP_ROUTES.MERCHANT_DASHBOARD} replace />;
+  }
+
   const hasProducts = filteredProducts.length > 0;
   const showEmptyState = !productsLoading && !productsError && !hasProducts;
   const showErrorState = !productsLoading && Boolean(productsError);
@@ -56,7 +78,7 @@ function CatalogPage({
       />
 
       <main>
-        <section className="home-hero">
+        <section id="home-recommend" className="home-hero">
           <div className="home-hero-copy">
             <p className="eyebrow">Catalog Module</p>
             <h1>精选好物每日上新，支持加购下单一站完成。</h1>
@@ -82,12 +104,15 @@ function CatalogPage({
           </div>
         </section>
 
-        <section className="product-section">
+        <section id="hot-products" className="product-section">
           <div className="section-head">
             <div>
               <h2>精选商品</h2>
-              <p>数据来源：`/api/products/featured`</p>
+              <p>支持按分类、关键词、价格区间、库存和排序方式查询。</p>
             </div>
+          </div>
+
+          <div className="catalog-filter-grid">
             <div className="search-wrap">
               <select value={categoryFilter} onChange={(event) => onCategoryChange(event.target.value)}>
                 {categoryOptions.map((option) => (
@@ -99,9 +124,54 @@ function CatalogPage({
               <input
                 value={searchKeyword}
                 onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="搜索商品、描述或商户"
+                placeholder="搜索商品、描述或标签"
               />
-              <button type="button">搜索</button>
+              <button type="button" onClick={() => void onReload()}>
+                搜索
+              </button>
+            </div>
+
+            <div className="catalog-advanced-filters">
+              <label>
+                最低价
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={minPrice}
+                  onChange={(event) => onMinPriceChange(event.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label>
+                最高价
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={maxPrice}
+                  onChange={(event) => onMaxPriceChange(event.target.value)}
+                  placeholder="不限"
+                />
+              </label>
+              <label>
+                排序
+                <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="catalog-checkbox">
+                <input
+                  type="checkbox"
+                  checked={inStockOnly}
+                  onChange={(event) => onInStockOnlyChange(event.target.checked)}
+                />
+                仅看有货
+              </label>
             </div>
           </div>
 
@@ -114,14 +184,14 @@ function CatalogPage({
               {filteredProducts.map((product) => (
                 <article key={product.id} className="product-card">
                   {product.badge ? <div className="product-badge">{product.badge}</div> : null}
-                  <div className="product-image">
+                  <Link to={APP_ROUTES.PRODUCT_DETAIL.replace(":slug", product.slug)} className="product-image">
                     {product.imageUrl ? (
                       <img src={product.imageUrl} alt={product.name} />
                     ) : (
                       <div className="product-image-fallback">暂无图片</div>
                     )}
                     <span>{product.category}</span>
-                  </div>
+                  </Link>
                   <h3>{product.name}</h3>
                   <p>{product.description}</p>
                   <div className="product-merchant">商户：{product.merchantName || "平台自营"}</div>

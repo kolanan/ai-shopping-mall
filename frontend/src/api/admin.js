@@ -1,9 +1,17 @@
 ﻿async function parseResponse(response, fallbackMessage) {
-  const data = await response.json().catch(() => ({}));
+  const rawText = await response.text().catch(() => "");
+  let data = {};
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = {};
+    }
+  }
   if (!response.ok) {
     throw new Error(data.message || fallbackMessage);
   }
-  return data;
+  return response.status === 204 ? null : data;
 }
 
 export async function fetchAdminCategories() {
@@ -88,4 +96,14 @@ export async function uploadMerchantProductImage(merchantId, file) {
     body: formData
   });
   return parseResponse(response, "商品图片上传失败。");
+}
+
+export async function deleteMerchantProduct(productId, merchantId) {
+  const query = new URLSearchParams({
+    merchantId: String(merchantId)
+  });
+  const response = await fetch(`/api/admin/products/${encodeURIComponent(productId)}?${query.toString()}`, {
+    method: "DELETE"
+  });
+  return parseResponse(response, "商品删除失败。");
 }

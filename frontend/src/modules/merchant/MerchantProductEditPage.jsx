@@ -75,7 +75,7 @@ function MerchantProductEditPage({
               <h2>商品编辑</h2>
               <p>{currentProduct ? `正在编辑：${currentProduct.name}` : "未找到目标商品，请返回列表后重试。"}</p>
             </div>
-            <Link to={APP_ROUTES.MERCHANT_DASHBOARD} className="section-link-button">
+            <Link to={APP_ROUTES.MERCHANT_PRODUCTS} className="section-link-button">
               返回我的商品
             </Link>
           </div>
@@ -91,7 +91,7 @@ function MerchantProductEditPage({
                 event.preventDefault();
                 void onUpdateProduct(currentProduct.id, editForm).then((ok) => {
                   if (ok) {
-                    navigate(APP_ROUTES.MERCHANT_DASHBOARD);
+                    navigate(APP_ROUTES.MERCHANT_PRODUCTS);
                   }
                 });
               }}
@@ -253,7 +253,7 @@ function MerchantProductEditPage({
                 <button type="submit" disabled={merchant.updateSubmitting}>
                   {merchant.updateSubmitting ? "保存中..." : "保存修改"}
                 </button>
-                <Link to={APP_ROUTES.MERCHANT_DASHBOARD} className="section-link-button">
+                <Link to={APP_ROUTES.MERCHANT_PRODUCTS} className="section-link-button">
                   取消
                 </Link>
               </div>
@@ -268,3 +268,4 @@ function MerchantProductEditPage({
 }
 
 export default MerchantProductEditPage;
+

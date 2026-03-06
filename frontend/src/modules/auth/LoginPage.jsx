@@ -14,8 +14,8 @@ function LoginPage({
 }) {
   const handleFieldChange = useCallback(
     (event) => {
-      const { name, value } = event.target;
-      onLoginFieldChange(name, value);
+      const { name, value, type, checked } = event.target;
+      onLoginFieldChange(name, type === "checkbox" ? checked : value);
     },
     [onLoginFieldChange]
   );
@@ -23,7 +23,7 @@ function LoginPage({
   const isRegisterMode = loginMode === "register";
 
   return (
-    <main className="auth-page-wrap auth-login-wrap">
+    <main className="auth-page-wrap auth-login-wrap user-auth-theme">
       <section className="auth-page-card auth-login-card">
         <div className="auth-login-layout">
           <aside className="auth-login-aside">
@@ -107,6 +107,18 @@ function LoginPage({
                   required
                 />
               </label>
+              {!isRegisterMode ? (
+                <label htmlFor="login-rememberPassword" className="auth-remember-row">
+                  <input
+                    id="login-rememberPassword"
+                    name="rememberPassword"
+                    type="checkbox"
+                    checked={Boolean(loginForm.rememberPassword)}
+                    onChange={handleFieldChange}
+                  />
+                  <span>记住密码（仅当前设备）</span>
+                </label>
+              ) : null}
               <button type="submit" disabled={loginSubmitting}>
                 {loginSubmitting ? "提交中..." : isRegisterMode ? "立即注册" : "立即登录"}
               </button>
@@ -119,3 +131,4 @@ function LoginPage({
 }
 
 export default LoginPage;
+

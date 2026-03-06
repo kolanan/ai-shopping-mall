@@ -292,6 +292,27 @@
   cursor: not-allowed;
 }
 
+.merchant-row-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.merchant-delete-button {
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: #fff1f2;
+  color: #be123c;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.merchant-delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 900px) {
   .merchant-hero {
     flex-direction: column;

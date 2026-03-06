@@ -44,3 +44,43 @@ export async function updateOrderStatus(orderId, payload) {
 
   return data;
 }
+
+export async function fetchMerchantOrderStats(merchantId) {
+  const response = await fetch(`/api/orders/merchant/stats?merchantId=${encodeURIComponent(merchantId)}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "商户订单统计加载失败。");
+  }
+
+  return data;
+}
+
+export async function fetchMerchantOrders(merchantId) {
+  const response = await fetch(`/api/orders/merchant?merchantId=${encodeURIComponent(merchantId)}`);
+  const data = await response.json().catch(() => ([]));
+
+  if (!response.ok) {
+    throw new Error(data.message || "商户订单列表加载失败。");
+  }
+
+  return data;
+}
+
+export async function updateMerchantOrderStatus(orderId, payload) {
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/merchant-status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "商户更新订单状态失败。");
+  }
+
+  return data;
+}

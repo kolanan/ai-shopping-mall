@@ -14,8 +14,8 @@ function MerchantJoinPage({
 }) {
   const handleFieldChange = useCallback(
     (event) => {
-      const { name, value } = event.target;
-      onMerchantFieldChange(name, value);
+      const { name, value, type, checked } = event.target;
+      onMerchantFieldChange(name, type === "checkbox" ? checked : value);
     },
     [onMerchantFieldChange]
   );
@@ -23,7 +23,7 @@ function MerchantJoinPage({
   const isLoginMode = merchantMode === "login";
 
   return (
-    <main className="auth-page-wrap auth-login-wrap">
+    <main className="auth-page-wrap auth-login-wrap merchant-auth-theme">
       <section className="auth-page-card auth-login-card">
         <div className="auth-login-layout">
           <aside className="auth-login-aside">
@@ -109,6 +109,18 @@ function MerchantJoinPage({
                   required
                 />
               </label>
+              {isLoginMode ? (
+                <label htmlFor="merchant-rememberPassword" className="auth-remember-row">
+                  <input
+                    id="merchant-rememberPassword"
+                    name="rememberPassword"
+                    type="checkbox"
+                    checked={Boolean(merchantForm.rememberPassword)}
+                    onChange={handleFieldChange}
+                  />
+                  <span>记住密码（仅当前设备）</span>
+                </label>
+              ) : null}
               <button type="submit" disabled={merchantSubmitting}>
                 {merchantSubmitting ? "提交中..." : isLoginMode ? "进入商户后台" : "提交入驻"}
               </button>
@@ -121,3 +133,4 @@ function MerchantJoinPage({
 }
 
 export default MerchantJoinPage;
+

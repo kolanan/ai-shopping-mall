@@ -1,0 +1,130 @@
+.merchant-orders-page {
+  width: min(1200px, 92vw);
+  margin: 0 auto;
+  padding: 2.4rem 0 3.2rem;
+}
+
+.merchant-orders-hero {
+  border: 1px solid #e2e8f0;
+  background:
+    radial-gradient(900px 220px at 90% -20%, rgba(245, 158, 11, 0.2), transparent 55%),
+    #ffffff;
+}
+
+.merchant-orders-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.merchant-orders-stat {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.9rem;
+  background: #f8fafc;
+  padding: 0.8rem 0.9rem;
+}
+
+.merchant-orders-stat span {
+  display: block;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.merchant-orders-stat strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: #0f172a;
+}
+
+.merchant-orders-stat.warn {
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
+.merchant-orders-stat.warn strong {
+  color: #c2410c;
+}
+
+.merchant-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.merchant-order-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #ffffff;
+  padding: 0.95rem 1rem;
+}
+
+.merchant-order-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+}
+
+.merchant-order-head h3 {
+  margin: 0;
+}
+
+.merchant-order-head p {
+  margin: 0.2rem 0 0;
+  color: #64748b;
+}
+
+.merchant-order-meta {
+  margin-top: 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.merchant-order-items {
+  margin-top: 0.7rem;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 0.6rem;
+}
+
+.merchant-order-item-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.25rem 0;
+}
+
+.merchant-order-actions {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.merchant-order-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  background: #0ea5a2;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.merchant-order-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .merchant-orders-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .merchant-order-head,
+  .merchant-order-meta,
+  .merchant-order-item-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

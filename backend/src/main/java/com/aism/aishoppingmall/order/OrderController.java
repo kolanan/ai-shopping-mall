@@ -1,5 +1,8 @@
 package com.aism.aishoppingmall.order;
 
+import com.aism.aishoppingmall.order.dto.MerchantUpdateOrderStatusDTO;
+import com.aism.aishoppingmall.order.vo.MerchantOrderStatsVO;
+import com.aism.aishoppingmall.order.vo.MerchantOrderVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,5 +61,35 @@ public class OrderController {
             @Valid @RequestBody UpdateOrderStatusRequest request
     ) {
         return orderService.updateOrderStatus(orderId, request);
+    }
+
+    @Operation(summary = "Get merchant order stats")
+    @GetMapping("/merchant/stats")
+    public MerchantOrderStatsVO getMerchantOrderStats(
+            @Parameter(description = "Merchant ID", required = true, example = "10")
+            @RequestParam @NotNull(message = "Merchant ID must not be null") Long merchantId
+    ) {
+        return orderService.getMerchantOrderStats(merchantId);
+    }
+
+    @Operation(summary = "Get merchant sold orders")
+    @GetMapping("/merchant")
+    public List<MerchantOrderVO> getMerchantOrders(
+            @Parameter(description = "Merchant ID", required = true, example = "10")
+            @RequestParam @NotNull(message = "Merchant ID must not be null") Long merchantId
+    ) {
+        return orderService.getMerchantOrders(merchantId);
+    }
+
+    @Operation(summary = "Merchant update order status")
+    @PatchMapping("/{orderId}/merchant-status")
+    public MerchantOrderVO updateMerchantOrderStatus(
+            @Parameter(description = "Order ID", required = true, example = "1001")
+            @PathVariable Long orderId,
+            @Parameter(description = "Merchant update order status request", required = true)
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Merchant update order status request body", required = true)
+            @Valid @RequestBody MerchantUpdateOrderStatusDTO request
+    ) {
+        return orderService.updateMerchantOrderStatus(orderId, request);
     }
 }

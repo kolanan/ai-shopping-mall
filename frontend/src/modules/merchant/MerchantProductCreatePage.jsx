@@ -42,7 +42,7 @@ function MerchantProductCreatePage({
               <h2>商品信息</h2>
               <p>请填写商品基础信息并提交创建。</p>
             </div>
-            <Link to={APP_ROUTES.MERCHANT_DASHBOARD} className="section-link-button">
+            <Link to={APP_ROUTES.MERCHANT_PRODUCTS} className="section-link-button">
               返回我的商品
             </Link>
           </div>
@@ -233,3 +233,4 @@ function MerchantProductCreatePage({
 }
 
 export default MerchantProductCreatePage;
+

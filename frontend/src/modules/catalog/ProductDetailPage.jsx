@@ -1,4 +1,4 @@
-import { Link, Navigate, useParams } from "react-router-dom";
+﻿import { Link, Navigate, useParams } from "react-router-dom";
 import SiteHeader from "../../components/layout/SiteHeader";
 import SiteFooter from "../../components/layout/SiteFooter";
 import { APP_ROUTES } from "../../router/paths";
@@ -16,6 +16,10 @@ function ProductDetailPage({
   onAddToCart
 }) {
   const { slug } = useParams();
+
+  if (currentUser?.role === "MERCHANT") {
+    return <Navigate to={APP_ROUTES.MERCHANT_DASHBOARD} replace />;
+  }
 
   if (!slug) {
     return <Navigate to={APP_ROUTES.CATALOG} replace />;
@@ -37,7 +41,7 @@ function ProductDetailPage({
           <div className="section-head">
             <div>
               <h2>商品详情</h2>
-              <p>查看商品完整信息并可直接加购。</p>
+              <p>查看商品完整信息并可直接加入购物车。</p>
             </div>
             <Link to={APP_ROUTES.CATALOG} className="section-link-button">
               返回商品列表
